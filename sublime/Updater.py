@@ -6,11 +6,11 @@ API_SIMPLIFIER = re.compile('chrome\.(?:experimental\.)?(.*)')
 # updated API. If there is, we download it and re-generate the 
 # API object to be used by the extension
 
-UPDATE_URL = "http://localhost:8000/"
-FREQUENCY_OF_CHECK = 60*60*24    # seconds
-FILECHANGE_CONTROL_URL = UPDATE_URL + "last_file_changed.json"
-APPS_API_URL = UPDATE_URL + "apps_api.json"
-EXTENSIONS_API_URL = UPDATE_URL + "extensions_api.json"
+UPDATE_URL = "http://chrome-api.storage.googleapis.com/"
+FREQUENCY_OF_CHECK = 60*60*24    # measured in seconds, currently 1 day
+FILECHANGE_CONTROL_URL = UPDATE_URL + "last_file_change.json"
+APPS_API_URL = UPDATE_URL + "apps_latest.json"
+EXTENSIONS_API_URL = UPDATE_URL + "extensions_latest.json"
 
 def debug(obj):
 	print('[ChromeAppUpdater] %s' % obj)

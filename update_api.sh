@@ -11,6 +11,9 @@ GENERATION_TIME=`date -u +%y-%m-%d_%H%M_UTC`
 set -o pipefail
 set -e
 
+# update own source
+git pull
+
 # update chromium source
 cd ${CHROME_SRC}
 gclient sync
@@ -29,9 +32,9 @@ if [ -s ${TEMP_APP} -a -s ${TEMP_EXT} ] ; then
   # try to parse, to check if generated files are valid JSONs
   python -c "import json, io; json.load(open(\"${TEMP_APP}\", \"r\")); json.load(open(\"${TEMP_EXT}\", \"r\"));"
 
-  # gzip to save bandwidth
-  gzip ${TEMP_APP}
-  gzip ${TEMP_EXT}
+  # gzip to save bandwidth (keep the original files to be used on IDE specific code below)
+  gzip -c ${TEMP_APP} > ${TEMP_APP}.gz
+  gzip -c ${TEMP_EXT} > ${TEMP_EXT}.gz
 
   # upload files to Google Cloud Storage, with public read access
   gsutil cp -a public-read ${TEMP_APP}.gz gs://chrome-api/apps_${GENERATION_TIME}.json.gz
@@ -44,4 +47,18 @@ else
   echo "Error, could not find valid files at ${TEMP_APP} and ${TEMP_EXT}!"
   exit 1
 fi
+
+
+## generate the IDE specific files:
+
+# for Sublime:
+SUBLIME_DIR=/tmp/sublime_chromeapis_plugin
+rm -Rf ${SUBLIME_DIR}
+cp -R sublime ${SUBLIME_DIR}
+
+python SublimeApiGenerator.py ${TEMP_APP} ${SUBLIME_DIR}/apps.json
+python SublimeApiGenerator.py ${TEMP_EXT} ${SUBLIME_DIR}/extensions.json
+
+tar czf /tmp/sublime_chromeapis_plugin.tgz ${SUBLIME_DIR}
+gsutil cp -a public-read /tmp/sublime_chromeapis_plugin.tgz gs://chrome-api/sublime_chromeapis_plugin.tgz
 
