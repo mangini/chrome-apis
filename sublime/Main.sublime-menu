@@ -1,0 +1,42 @@
+[
+    {
+        "caption": "Chrome",
+        "mnemonic": "A",
+        "id": "chrome",
+        "children":
+        [
+            { "caption": "New App...", "mnemonic": "A",
+                "children": [
+                  { "command": "newapp_helloworld", "caption": "Hello world"},
+                  { "command": "newapp_webview", "caption": "Hello world - WebView"},
+                  { "caption": "-"},
+                  { "command": "newapp_serial", "caption": "Sample using Serial API"},
+                  { "command": "newapp_angularjs", "caption": "Sample using AngularJS"}
+                ]
+            },
+            { "caption": "New Extension...", "mnemonic": "E",
+                "children": [
+                  { "command": "newext_helloworld", "caption": "Hello world"},
+                  { "command": "newext_browseraction", "caption": "Hello world - Browser action"},
+                  { "command": "newext_pageaction", "caption": "Hello world - Page action"},
+                  { "caption": "-"},
+                  { "command": "newext_contentSettings", "caption": "Sample using contentSettings"}
+                ]
+            },
+            { "caption": "-"},
+            { "command": "manifest-lint", "caption": "Validate manifest.json", "mnemonic": "M" },
+            { "command": "csp-validate", "caption": "Validate CSP", "mnemonic": "C" },
+            { "command": "assets-validate", "caption": "Validate Chrome Web Store assets", "mnemonic": "S" },
+            { "caption": "-"},
+            { "command": "chrome-run", "caption": "Run locally"},
+            { "command": "chrome-pack", "caption": "Create deployable CRX package"},
+            { "command": "chrome-deploy", "caption": "Go to Chrome Web Store", "mnemonic": "D" },
+            { "caption": "-"},
+            { "command": "apps-samples", "caption": "Samples - Apps"},
+            { "command": "ext-samples", "caption": "Samples - Extensions"},
+            { "command": "apps-docs", "caption": "Documentation - Apps"},
+            { "command": "ext-docs", "caption": "Documentation - Extensions"},
+            { "command": "about-chromeapis", "caption": "About"}
+        ]
+    }
+]

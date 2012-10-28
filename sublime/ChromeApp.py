@@ -80,6 +80,8 @@ class ChromeApp(sublime_plugin.EventListener):
 					self.check_view(v, True)
 
 	def on_load(self, view):
+		debug("load view")
+		print(view)
 		self.check_view(view)
 
 
@@ -96,6 +98,10 @@ class ChromeApp(sublime_plugin.EventListener):
 				return
 		debug("Chrome App deactivated for windows %i" % winId)
 		self.activeInWindows[winId]=False
+
+	def on_project_load(self, view):
+		print("ONPROJECTLOAD");
+		print(view)
 
 	def on_query_completions(self, view, prefix, locations):
 		if view.id() in self.activeInViews:
