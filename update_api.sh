@@ -7,6 +7,8 @@ TEMP_APP=${TEMP_FILEPREFFIX}apps.json
 TEMP_EXT=${TEMP_FILEPREFFIX}extensions.json
 GENERATION_TIME=`date -u +%y-%m-%d_%H%M_UTC`
 
+GS_BUCKET=chrome-api
+
 # stop if any command returns uncaught error
 set -o pipefail
 set -e
@@ -37,11 +39,10 @@ if [ -s ${TEMP_APP} -a -s ${TEMP_EXT} ] ; then
   gzip -c ${TEMP_EXT} > ${TEMP_EXT}.gz
 
   # upload files to Google Cloud Storage, with public read access
-  gsutil cp -a public-read ${TEMP_APP}.gz gs://chrome-api/apps_${GENERATION_TIME}.json.gz
-  gsutil cp -a public-read ${TEMP_EXT}.gz gs://chrome-api/extensions_${GENERATION_TIME}.json.gz
-  gsutil cp -a public-read ${TEMP_APP}.gz gs://chrome-api/apps_latest.json.gz
-  gsutil cp -a public-read ${TEMP_EXT}.gz gs://chrome-api/extensions_latest.json.gz
-  #gsutil ls "gs://chrome-api/*.json.gz
+  gsutil cp -a public-read ${TEMP_APP}.gz gs://${GS_BUCKET}/apps_${GENERATION_TIME}.json.gz
+  gsutil cp -a public-read ${TEMP_EXT}.gz gs://${GS_BUCKET}/extensions_${GENERATION_TIME}.json.gz
+  gsutil cp -a public-read ${TEMP_APP}.gz gs://${GS_BUCKET}/apps_latest.json.gz
+  gsutil cp -a public-read ${TEMP_EXT}.gz gs://${GS_BUCKET}/extensions_latest.json.gz
   
 else
   echo "Error, could not find valid files at ${TEMP_APP} and ${TEMP_EXT}!"
@@ -52,13 +53,15 @@ fi
 ## generate the IDE specific files:
 
 # for Sublime:
-SUBLIME_DIR=/tmp/sublime_chromeapis_plugin
+SUBLIME_DIR_NAME=ChromeApis
+SUBLIME_DIR=/tmp/${SUBLIME_DIR_NAME}
+
 rm -Rf ${SUBLIME_DIR}
 cp -R sublime ${SUBLIME_DIR}
 
 python SublimeApiGenerator.py ${TEMP_APP} ${SUBLIME_DIR}/apps.json
 python SublimeApiGenerator.py ${TEMP_EXT} ${SUBLIME_DIR}/extensions.json
 
-tar czf /tmp/sublime_chromeapis_plugin.tgz ${SUBLIME_DIR}
-gsutil cp -a public-read /tmp/sublime_chromeapis_plugin.tgz gs://chrome-api/sublime_chromeapis_plugin.tgz
+tar czf /tmp/sublime_chromeapis_plugin.tgz -C /tmp ${SUBLIME_DIR_NAME}
+gsutil cp -a public-read /tmp/sublime_chromeapis_plugin.tgz gs://${GS_BUCKET}
 
