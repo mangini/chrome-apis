@@ -21,7 +21,7 @@ cd ${CHROME_SRC}
 gclient sync
 
 # remove old temporary files
-rm -f ${TEMP_APP} ${TEMP_EXT} ${TEMP_APP}.gz ${TEMP_EXT}.gz
+rm -f ${TEMP_APP} ${TEMP_EXT}
 
 # extract data model from chromium source repository
 cd ${GITHUB_CHROMEAPIS}
@@ -34,15 +34,11 @@ if [ -s ${TEMP_APP} -a -s ${TEMP_EXT} ] ; then
   # try to parse, to check if generated files are valid JSONs
   python -c "import json, io; json.load(open(\"${TEMP_APP}\", \"r\")); json.load(open(\"${TEMP_EXT}\", \"r\"));"
 
-  # gzip to save bandwidth (keep the original files to be used on IDE specific code below)
-  gzip -c ${TEMP_APP} > ${TEMP_APP}.gz
-  gzip -c ${TEMP_EXT} > ${TEMP_EXT}.gz
-
   # upload files to Google Cloud Storage, with public read access
-  gsutil cp -a public-read ${TEMP_APP}.gz gs://${GS_BUCKET}/apps_${GENERATION_TIME}.json.gz
-  gsutil cp -a public-read ${TEMP_EXT}.gz gs://${GS_BUCKET}/extensions_${GENERATION_TIME}.json.gz
-  gsutil cp -a public-read ${TEMP_APP}.gz gs://${GS_BUCKET}/apps_latest.json.gz
-  gsutil cp -a public-read ${TEMP_EXT}.gz gs://${GS_BUCKET}/extensions_latest.json.gz
+  gsutil cp -t -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_${GENERATION_TIME}.json
+  gsutil cp -t -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_${GENERATION_TIME}.json
+  gsutil cp -t -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_latest.json
+  gsutil cp -t -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_latest.json
   
 else
   echo "Error, could not find valid files at ${TEMP_APP} and ${TEMP_EXT}!"
