@@ -35,10 +35,10 @@ if [ -s ${TEMP_APP} -a -s ${TEMP_EXT} ] ; then
   python -c "import json, io; json.load(open(\"${TEMP_APP}\", \"r\")); json.load(open(\"${TEMP_EXT}\", \"r\"));"
 
   # upload files to Google Cloud Storage, with public read access
-  gsutil cp -t -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_${GENERATION_TIME}.json
-  gsutil cp -t -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_${GENERATION_TIME}.json
-  gsutil cp -t -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_latest.json
-  gsutil cp -t -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_latest.json
+  gsutil cp -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_${GENERATION_TIME}.json
+  gsutil cp -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_${GENERATION_TIME}.json
+  gsutil cp -z json -a public-read ${TEMP_APP} gs://${GS_BUCKET}/apps_latest.json
+  gsutil cp -z json -a public-read ${TEMP_EXT} gs://${GS_BUCKET}/extensions_latest.json
   
 else
   echo "Error, could not find valid files at ${TEMP_APP} and ${TEMP_EXT}!"
