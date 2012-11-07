@@ -7,25 +7,25 @@
         [
             { "caption": "New App...", "mnemonic": "A",
                 "children": [
-                  { "command": "newapp_helloworld", "caption": "Hello world"},
-                  { "command": "newapp_webview", "caption": "Hello world - WebView"},
+                  { "command": "new_chrome", "args":{"name": "sampleapp_helloworld"}, "caption": "Hello world"},
+                  { "command": "new_chrome", "args":{"name": "sampleapp_helloworld_sync_settings"}, "caption": "Hello world with synced settings"},
                   { "caption": "-"},
-                  { "command": "newapp_serial", "caption": "Sample using Serial API"},
-                  { "command": "newapp_angularjs", "caption": "Sample using AngularJS"}
+                  { "command": "new_chrome", "args":{"name": "sampleapp_serial"}, "caption": "Sample using Serial API"},
+                  { "command": "new_chrome", "args":{"name": "sampleapp_angularjs"}, "caption": "Sample using AngularJS"}
                 ]
             },
             { "caption": "New Extension...", "mnemonic": "E",
                 "children": [
-                  { "command": "newext_helloworld", "caption": "Hello world"},
-                  { "command": "newext_browseraction", "caption": "Hello world - Browser action"},
-                  { "command": "newext_pageaction", "caption": "Hello world - Page action"},
+                  { "command": "new_chrome", "args":{"name": "sampleext_helloworld"}, "caption": "Hello world"},
+                  { "command": "new_chrome", "args":{"name": "sampleext_helloworld_browser_action"}, "caption": "Hello world - Browser action"},
+                  { "command": "new_chrome", "args":{"name": "sampleext_helloworld_page_action"}, "caption": "Hello world - Page action"},
                   { "caption": "-"},
-                  { "command": "newext_contentSettings", "caption": "Sample using contentSettings"}
+                  { "command": "new_chrome", "args":{"name": "sampleext_contentSettings"}, "caption": "Sample using contentSettings"}
                 ]
             },
             { "caption": "-"},
             { "command": "manifest-lint", "caption": "Validate manifest.json", "mnemonic": "M" },
-            { "command": "csp-validate", "caption": "Validate CSP", "mnemonic": "C" },
+            { "command": "csp_validate", "caption": "Validate CSP", "mnemonic": "C" },
             { "command": "assets-validate", "caption": "Validate Chrome Web Store assets", "mnemonic": "S" },
             { "caption": "-"},
             { "command": "chrome-run", "caption": "Run locally"},
