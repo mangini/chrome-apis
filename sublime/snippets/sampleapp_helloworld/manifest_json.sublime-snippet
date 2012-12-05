@@ -9,7 +9,7 @@
       "scripts": ["${2:main.js}"]
     }
   },
-  "minimum_chrome_version": "${3:23}",
+  "minimum_chrome_version": "${3:23}"
 
 }
 ]]></content>
