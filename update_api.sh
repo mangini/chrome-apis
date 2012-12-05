@@ -16,6 +16,9 @@ set -e
 # update own source
 git pull
 
+# update index.html
+gsutil cp -a public-read index.html gs://${GS_BUCKET}
+
 # update chromium source
 cd ${CHROME_SRC}
 gclient sync
