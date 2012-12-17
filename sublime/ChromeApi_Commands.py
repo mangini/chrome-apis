@@ -27,31 +27,16 @@ class new_chrome(sublime_plugin.WindowCommand):
             simple_file=re.sub(r".*\/(Packages\/.*)", r"\1", file)
             view.run_command("insert_snippet", {"name": simple_file})
 
-class csp_validate(sublime_plugin.WindowCommand):
-
-    def run(self):
-        self.violations = [
-            {"file": "extensions.json", "line": 137, "message": "Cannot use inline scripts on HTML"},
-            {"file": "index.js", "line": 11, "message": "Cannot use eval()"}]
-        quick_panel = []
-        for v in self.violations:
-            quick_panel.append([
-                "%s line %d" % (v['file'], v['line']),
-                "CSP rule: %s" % v['message']])
-
-        self.window.show_quick_panel(quick_panel, self.csp_rule_clicked)
-
-    def csp_rule_clicked(self, index):
-        if index<0:
-            return
-        filename=self.violations[index]['file']
-        line=self.violations[index]['line']
-        self.window.open_file("%s:%d" % (filename, line), 
-            sublime.ENCODED_POSITION)
-
 class run_on_chrome(sublime_plugin.WindowCommand):
 
     def run(self):
         print ("running")
         # /Applications/Google\ Chrome\ Canary.app/Contents/MacOS/Google\ Chrome\ Canary 
         #      --app-id=jligobnedlocadmblphlbchpgoahdagb --no-startup-window
+
+
+class create_crx(sublime_plugin.WindowCommand):
+
+    def run(self):
+        print ("running")
+        

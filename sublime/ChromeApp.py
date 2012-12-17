@@ -11,30 +11,53 @@ MANIFEST_LOOKSLIKE_EXTENSION=2
 def debug(obj):
 	print('[ChromeApp] %s' % obj)
 
+# search parent dirs for manifest:
+def findProjectRoot(baseDir):
+	while True:
+		manifestName= baseDir + "/manifest.json"
+		if os.path.isfile(manifestName):
+			return baseDir
+			
+		parent = os.path.dirname(baseDir)
+		if parent == baseDir:
+			# search got to the root dir
+			return None
+
+		baseDir = parent
+
+	return None
+
+
 class ChromeApp(sublime_plugin.EventListener):
 
 	def __init__(self):
 		debug("initiating EventListener!")
 		self.activeInViews={}
+		self.manifestForOpenViews={}
 		self.appsCompletions=cPickle.load(open("%s/%s/apps.json" % 
 			(sublime.packages_path(), PACKAGE_NAME), 'r'))
-		self.appsCompletions=cPickle.load(open("%s/%s/extensions.json" % 
+		self.extensionsCompletions=cPickle.load(open("%s/%s/extensions.json" % 
 			(sublime.packages_path(), PACKAGE_NAME), 'r'))
-		debug(self.appsCompletions)
+		#debug(self.appsCompletions)
 
-	def activateForView(self, view, appType):
+	def activateForView(self, view, manifestName, appType):
 		self.activeInViews[view.id()] = appType
+		self.manifestForOpenViews[view.id()] = manifestName
 		status = "Chrome Packaged App" if appType==MANIFEST_LOOKSLIKE_APP else "Chrome Extension"
 		view.set_status("ChromeApp", status)
-		debug("activated for view %s as type %s" % (view.file_name(), appType))
+		debug("activated for view %s as type %s - manifest found at %s" % 
+			(view.file_name(), appType, manifestName))
 
 	def deactivateForView(self, view):
 		if view.id() in self.activeInViews:
 			del self.activeInViews[view.id()]
+		if view.id() in self.manifestForOpenViews:
+			del self.manifestForOpenViews[view.id()]
 		view.erase_status("ChromeApp")
 		debug("deactivated for view %s" % view.file_name())
 
 	def check_view(self, view, force=False):
+		debug("checking (force=%s) %s" % (force, view.file_name()))
 		if view.file_name() == None or view.id() == None:
 			return False
 
@@ -42,11 +65,12 @@ class ChromeApp(sublime_plugin.EventListener):
 			return self.activeInViews[view.id()]
 
 		if view.file_name().endswith(".js"):
-			manifestName=os.path.dirname(view.file_name())+"/manifest.json"
-			if os.path.isfile(manifestName):
-				looksLike=self.processManifest(manifestName)
-				if looksLike!=MANIFEST_LOOKSLIKE_NOTHING:
-					self.activateForView(view, looksLike)
+			parentDir = findProjectRoot(view.file_name())
+			if (parentDir != None):
+				manifestName= parentDir + "/manifest.json"
+				looksLike = self.processManifest(manifestName)
+				if looksLike != MANIFEST_LOOKSLIKE_NOTHING:
+					self.activateForView(view, manifestName, looksLike)
 					return True
 
 		self.deactivateForView(view)
@@ -67,41 +91,26 @@ class ChromeApp(sublime_plugin.EventListener):
 			return MANIFEST_LOOKSLIKE_NOTHING
 
 	def on_close(self, view):
-		if view.id() in self.activeInViews:
-			del self.activeInViews[view.id()]
+		self.deactivateForView(view)
 
 	def on_post_save(self, view):
 		debug("on_post_save, view="+view.file_name())
 		if not self.check_view(view):
 			if os.path.basename(view.file_name()) == "manifest.json":
-				debug("manifest saved, rechecking files on window")
-				views=view.window().views()
-				for v in views:
-					self.check_view(v, True)
+				# for each opened view, let's check if they are in the 
+				# same project of this manifest just saved
+				for viewId in self.manifestForOpenViews:
+					debug("manifest saved, rechecking open files: %s %s" % (viewId, self.manifestForOpenViews[viewId]))
+					if self.manifestForOpenViews[viewId] == view.file_name:
+						# force view recheck
+						self.check_view(v, True, False)
+
+#				views=view.window().views()
+#				for v in views:
+#					self.check_view(v, True)
 
 	def on_load(self, view):
-		debug("load view")
-		print(view)
 		self.check_view(view)
-
-
-	def _on_activated(self, view):
-		if (view.window() == None):
-			return
-		
-		winId=view.window().id()
-
-		for folder in view.window().folders():
-			if (os.path.isfile(folder+"/manifest.json")):
-				self.activeInWindows[winId]=True
-				debug("Chrome App activated for windows %i" % winId)
-				return
-		debug("Chrome App deactivated for windows %i" % winId)
-		self.activeInWindows[winId]=False
-
-	def on_project_load(self, view):
-		print("ONPROJECTLOAD");
-		print(view)
 
 	def on_query_completions(self, view, prefix, locations):
 		if view.id() in self.activeInViews:
