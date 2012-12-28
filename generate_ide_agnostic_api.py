@@ -15,6 +15,7 @@ DOCS_PATH = 'docs'
 
 def _Add_Api(api, templates, all_apis):
   api_name = re.sub(r'(.*)(devtools)\.([^.]+)', r'\2/\1\3', api['name'])
+  #sys.stderr.write("API = %s    API_NAME = %s\n" % (api['name'], api_name.replace('.', '_')))
   api_data = templates._api_data_source.get(api_name.replace('.', '_'))
   api_name = 'chrome.'+api['name']
   all_apis[api_name] = {}

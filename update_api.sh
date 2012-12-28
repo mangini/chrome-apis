@@ -1,7 +1,6 @@
 #!/bin/bash
 
 CHROME_SRC=${PWD}/../chromium
-GITHUB_CHROMEAPIS=${PWD}
 TEMP_FILEPREFFIX=/tmp/__chromeapis_
 TEMP_APP=${TEMP_FILEPREFFIX}apps.json
 TEMP_EXT=${TEMP_FILEPREFFIX}extensions.json
@@ -20,14 +19,14 @@ git pull
 gsutil cp -a public-read index.html gs://${GS_BUCKET}
 
 # update chromium source
-cd ${CHROME_SRC}
+pushd ${CHROME_SRC}
 gclient sync
 
 # remove old temporary files
 rm -f ${TEMP_APP} ${TEMP_EXT}
 
 # extract data model from chromium source repository
-cd ${GITHUB_CHROMEAPIS}
+popd
 ./generate_ide_agnostic_api.py -t apps -d ${CHROME_SRC}/src/chrome/common/extensions > ${TEMP_APP}
 ./generate_ide_agnostic_api.py -t extensions -d ${CHROME_SRC}/src/chrome/common/extensions > ${TEMP_EXT}
 
@@ -53,14 +52,17 @@ fi
 
 # for Sublime:
 SUBLIME_DIR_NAME=ChromeApis
-SUBLIME_DIR=/tmp/${SUBLIME_DIR_NAME}
+SUBLIME_ROOT_DIR=/tmp
+SUBLIME_DIR=${SUBLIME_ROOT_DIR}/${SUBLIME_DIR_NAME}
 
 rm -Rf ${SUBLIME_DIR}
-cp -R sublime ${SUBLIME_DIR}
+pushd ${SUBLIME_ROOT_DIR}
+git clone git://github.com/mangini/chrome-apis-sublime.git ${SUBLIME_DIR_NAME}
 
+popd
 python SublimeApiGenerator.py ${TEMP_APP} ${SUBLIME_DIR}/apps.json
 python SublimeApiGenerator.py ${TEMP_EXT} ${SUBLIME_DIR}/extensions.json
 
-tar czf /tmp/sublime_chromeapis_plugin.tgz -C /tmp ${SUBLIME_DIR_NAME}
+tar czf /tmp/sublime_chromeapis_plugin.tgz --exclude=".git" -C ${SUBLIME_ROOT_DIR} ${SUBLIME_DIR_NAME}
 gsutil cp -a public-read /tmp/sublime_chromeapis_plugin.tgz gs://${GS_BUCKET}
 
