@@ -21,6 +21,20 @@ def processApiJson(inputFilename, outputFilename):
 					"%s\tChrome %s" % (method['name'], simpleApiName), 
 					"%s.%s(%s)" % (api, method['name'], paramStr))
 				completions.append(completion)
+		if 'events' in obj[api]:
+			simpleApiName=API_SIMPLIFIER.match(api).groups(0)[0]
+			for method in obj[api]['events']:
+				paramStr=""
+				if 'parameters' in method:
+					for param in method['parameters']:
+						paramStr+=param['name']
+						if 'last' not in param or not param['last']:
+							paramStr+=", "
+				completion=(
+					"%s.%s.addListener" % (api, method['name']),
+					"%s\tChrome %s" % (method['name'], simpleApiName), 
+					"%s.%s.addListener(function( %s ) {\n\n});" % (api, method['name'], paramStr))
+				completions.append(completion)
 	with open(outputFilename, 'w') as out:
 		cPickle.dump(completions, out)
 
