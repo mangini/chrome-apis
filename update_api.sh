@@ -13,12 +13,22 @@ set -o pipefail
 set -e
 
 DRYRUN=
+UPDATE_CHROME=1
 
-# Check for dryrun flag
-if [ "$1x" == "-nx" ] ; then
-  echo "Dryrun - no changes will be made on remote repositories"
-  DRYRUN=1
-fi
+# Check for command line flags
+while [[ $* ]] ; do
+  if [ "$1x" == "-nx" ] ; then
+    echo "Dryrun - no changes will be made on remote repositories"
+    DRYRUN=1
+  elif [ "$1x" == "-cx" ] ; then
+    echo "No Chrome source code update"
+    UPDATE_CHROME=
+  else
+    echo "Unknown switch: $1"
+    exit 1
+  fi
+  shift
+done
 
 # update own source
 git pull
@@ -30,7 +40,9 @@ fi
 
 # update chromium source
 pushd ${CHROME_SRC}
-gclient sync
+if [ $UPDATE_CHROME ] ; then
+  gclient sync
+fi
 
 # remove old temporary files
 rm -f ${TEMP_APP} ${TEMP_EXT}
@@ -71,22 +83,32 @@ SUBLIME_DIR=${SUBLIME_ROOT_DIR}/${SUBLIME_DIR_NAME}
 
 rm -Rf ${SUBLIME_DIR}
 pushd ${SUBLIME_ROOT_DIR}
-git clone https://github.com/mangini/chrome-apis-sublime.git ${SUBLIME_DIR_NAME}
-
+git clone git@github.com:mangini/chrome-apis-sublime.git ${SUBLIME_DIR_NAME}
 popd
+
 python SublimeApiGenerator.py ${TEMP_APP} ${SUBLIME_DIR}/apps.json
 python SublimeApiGenerator.py ${TEMP_EXT} ${SUBLIME_DIR}/extensions.json
 
 pushd ${SUBLIME_DIR}
-git commit -m "updated apps and extensions object models"
-git checkout published
+echo "Let's update/commit object models"
+git commit -m "updated apps and extensions object models" apps.json extensions.json
+if [ ! $DRYRUN ] ; then
+  git push
+else
+  echo "DRYRUN: now I would push the following changes..."
+  git log origin/master..HEAD
+fi
+
+# applying changes to "published" branch:
+git checkout -b published origin/published
 git checkout master apps.json extensions.json
 git commit -m "Merged apps and extensions object models from trunk"
 if [ ! $DRYRUN ] ; then
   git push
 else
-  echo "DRYRUN: now I would push the following changes:"
-  git status
+  echo "DRYRUN: now I would push the following changes..."
+  git log origin/published..HEAD
+fi
 popd
 
 # stable/published version
@@ -95,7 +117,7 @@ if [ ! $DRYRUN ] ; then
   gsutil cp -a public-read /tmp/sublime_chromeapis_plugin_stable.tgz gs://${GS_BUCKET}
 else
   echo "DRYRUN: now I would copy /tmp/sublime_chromeapis_plugin_stable.tgz to gs://${GS_BUCKET}"
-popd
+fi
 
 pushd ${SUBLIME_DIR}
 git checkout master
@@ -107,5 +129,5 @@ if [ ! $DRYRUN ] ; then
   gsutil cp -a public-read /tmp/sublime_chromeapis_plugin.tgz gs://${GS_BUCKET}
 else
   echo "DRYRUN: now I would copy /tmp/sublime_chromeapis_plugin.tgz to gs://${GS_BUCKET}"
-popd
+fi
 
