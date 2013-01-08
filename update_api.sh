@@ -35,7 +35,7 @@ git pull
 
 # update index.html
 if [ ! $DRYRUN ] ; then
-  gsutil cp -a public-read index.html gs://${GS_BUCKET}
+  gsutil cp -R -a public-read site gs://${GS_BUCKET}
 fi
 
 # update chromium source
