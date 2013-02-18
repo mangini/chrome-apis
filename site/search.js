@@ -12,11 +12,11 @@ var KEY_SEP = '|';
   }
 
   SearchAPI.prototype.initialize = function() {
-    this.loadJson('apps_latest.json', function(result) {
+    this.loadJson('../apps_latest.json', function(result) {
       this.appsApi = result;
       this.finishedLoading();
     });
-    this.loadJson('extensions_latest.json', function(result) {
+    this.loadJson('../extensions_latest.json', function(result) {
       this.extensionsApi = result;
       this.finishedLoading();
     });
