@@ -342,12 +342,21 @@ window.addEventListener('DOMContentLoaded', function() {
   var extensionsCheckbox = document.getElementById("extensions");
   var isApps = appsCheckbox.checked;
 
+  var appendTextNode = function(el, text) {
+    if (el.insertAdjacentText) {
+      el.insertAdjacentText('beforeEnd', text);
+    } else {  // firefox
+      var textNode = document.createTextNode(text);
+      el.appendChild(textNode);
+    }
+  }
+
   var renderFunctionReturn = function(f, key) {
     var el=document.createElement('span');
     if (f['returns']) {
-      el.insertAdjacentText('beforeEnd', getBestType(f.returns));
+      appendTextNode(el, getBestType(f.returns));
     } else {
-      el.innerText = 'void';
+      el.innerHTML = 'void';
     }
     return el;
   }
@@ -379,10 +388,10 @@ window.addEventListener('DOMContentLoaded', function() {
     // render the return type, if any:
     if (!isEvent) {
       header.appendChild( renderFunctionReturn(f, key) );
-      header.insertAdjacentText('beforeEnd', ' ');
+      appendTextNode(header, ' ');
     }
 
-    header.insertAdjacentText('beforeEnd', '.');
+    appendTextNode(header, '.');
     // render the function name
     var fname=document.createElement('span');
     fname.className = 'fname';
@@ -391,23 +400,23 @@ window.addEventListener('DOMContentLoaded', function() {
     header.appendChild( fname );
 
     if (isEvent) {
-      header.insertAdjacentText('beforeEnd', '.addListener');
+      appendTextNode(header, '.addListener');
     }
-    header.insertAdjacentText('beforeEnd', '(');
+    appendTextNode(header, '(');
 
     if (f['parameters']) {
       f['parameters'].forEach(
         function(cur, index, ar) {
           var param=document.createElement('span');
-          param.innerText = cur.name;
-	        header.appendChild ( param );
+          param.innerHTML = cur.name;
+	        header.appendChild( param );
           if (index<ar.length-1) {
-	          header.insertAdjacentText('beforeEnd', ', ');
+	          appendTextNode(header, ', ');
 	        }
         });
     }
 
-    header.insertAdjacentText('beforeEnd', ') : ');
+    appendTextNode(header, ') : ');
     var descEl = document.createElement('span');
     descEl.className = 'description';
     descEl.innerHTML = getBestDescription(f);

@@ -6,6 +6,7 @@ body {
 
 button {
   background-image: -webkit-linear-gradient(top,#4d90fe,#4787ed);
+  background-image: -moz-linear-gradient(top,#4d90fe,#4787ed);
   color: white;
   padding: 5px 10px;
   font-weight: bold;
@@ -15,6 +16,7 @@ button {
 }
 button:hover {
   background-image: -webkit-linear-gradient(top,#4d90fe,#357ae8);
+  background-image: -moz-linear-gradient(top,#4d90fe,#357ae8);
   border: 1px solid #2f5bb7;
 }
 
@@ -69,7 +71,6 @@ button:hover {
   color: red;
 }
 
-.
 #results a {
   color: inherit;
   text-decoration: inherit;
