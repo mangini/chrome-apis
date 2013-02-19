@@ -584,7 +584,7 @@ window.addEventListener('DOMContentLoaded', function() {
     var state=element.getAttribute('data-state');
     if (state==='open') {
 
-      if (parentType!=='function' && parentType!=='namespace') {
+      if (parentType!=='function' && parentType!=='event' && parentType!=='namespace') {
         // do nothing
         return;
       }
@@ -592,7 +592,7 @@ window.addEventListener('DOMContentLoaded', function() {
       // close
       for (var i=element.children.length-1; i>=0; i--) {
         var child = element.children.item(i);
-        if (parentType==='function' && child.tagName==='PRE') {
+        if ((parentType==='function' || parentType==='event') && child.tagName==='PRE') {
           element.removeChild(child);
         } else if (parentType==='namespace' && child.tagName==='DIV') {
           element.removeChild(child);
