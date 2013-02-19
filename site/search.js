@@ -342,6 +342,8 @@ window.addEventListener('DOMContentLoaded', function() {
   var extensionsCheckbox = document.getElementById("extensions");
   var isApps = appsCheckbox.checked;
 
+  searchBox.focus();
+
   var appendTextNode = function(el, text) {
     if (el.insertAdjacentText) {
       el.insertAdjacentText('beforeEnd', text);
@@ -622,7 +624,5 @@ window.addEventListener('DOMContentLoaded', function() {
 
     }
   });
-
-
 
 });
