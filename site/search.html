@@ -4,10 +4,30 @@
     <meta charset="utf-8">
     <title>Chrome Apps and Extensions APIs</title>
     <link href="search.css" rel="stylesheet">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38634901-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
 </head>
 <body>
   <div class="search">
-    <input id="searchbox" type="text" placeholder="search the Chrome API here"></input>
+  	<form method="GET" action="#">
+    	<input id="searchbox" type="text" placeholder="search the Chrome API here"></input>
+    	<fieldset>
+	    	<label>Search in</label>
+	    	<input type="radio" checked="true" name="searchType" id="apps">Chrome Apps API</input>
+	    	<input type="radio" name="searchType" id="extensions">Chrome Extensions API</input>
+    	</fieldset>
+    </form>
   </div>
 
   <div id="results">

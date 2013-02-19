@@ -85,15 +85,8 @@ button:hover {
   font-family: Verdana, Arial;
 }
 
-.more {
-  font-family: Verdana, Arial;
-  font-size: 12px;
-}
-
-.paramsDetail {
-  padding-left: 3em;
-  margin-left: 1em;
-  margin-top: 4px;
+fieldset {
+  border: 0px none;
 }
 
 pre {
@@ -103,24 +96,25 @@ pre {
   border-radius: 8px;
   padding: 20px;
   color: #ddd;
-  overflow: auto;
-  white-space: normal;
+  white-space: pre-wrap;
 }
 
-pre > div {
-  text-indent: -4em;
-  margin: 2px 0 0 5em;
-}
-pre > div > div {
-  margin-left: 3em;
+.param {
+  color: rgb(247, 182, 84);
 }
 
-pre > div.struct {
-  text-indent: 0;
-  margin-left: 1em;
+pre .fname {
+  color: rgb(208, 247, 84);
 }
 
-pre > div.struct > div {
-  text-indent: -5em;
-  margin-left: 7em;
+pre .desc {
+  color: rgb(156, 156, 156);
 }
+pre .namespace, pre .returns {
+  color: rgb(132, 216, 255);
+}
+
+pre .paramType {
+  color: rgb(255, 47, 122);
+}
+

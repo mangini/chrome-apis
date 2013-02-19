@@ -23,10 +23,8 @@ var KEY_SEP = '|';
   }
 
   SearchAPI.prototype.finishedLoading = function() {
-    if (this.appsApi && this.extensionsApi) {
-      if (this.queuedSearchTerm) {
-        this.search(str);
-      }
+    if (this.appsApi && this.extensionsApi && this.queuedSearchTerm) {
+      this.search(this.queuedSearchTerm[0], this.queuedSearchTerm[1]);
     }
   }
 
@@ -54,16 +52,16 @@ var KEY_SEP = '|';
     this.listener = listener;
   }
 
-  SearchAPI.prototype.search = function(apps, str) {
-    if (!this.appsApi || !this.extensionsApi) {
-      this.queuedSearchTerm = str;
+  SearchAPI.prototype.search = function(isApps, str) {
+    if ((isApps && !this.appsApi) || (!isApps && !this.extensionsApi)) {
+      this.queuedSearchTerm = [isApps, str];
       return;
     }
 
     var results = {};
     // TODO: make this faster by using indexedDB
-    var re = new RegExp("\\b"+str);
-    var api=apps?this.appsApi:this.extensionsApi;
+    var re = new RegExp("\\b"+str,"i");
+    var api=isApps?this.appsApi:this.extensionsApi;
     for (var namespace in api) {
       if (re.test(namespace)) {
         results[namespace] = api[namespace];
@@ -76,22 +74,229 @@ var KEY_SEP = '|';
       
   }
 
-  SearchAPI.prototype.getSubtree = function(apps, keys) {
+  SearchAPI.prototype.getSubtree = function(isApps, keys) {
 
-    var searchObj=apps?this.appsApi:this.extensionsApi;
+    var searchObj=isApps?this.appsApi:this.extensionsApi;
 
     for (var i=0; i<keys.length; i++) {
       searchObj = searchObj[keys[i]];
       if (!searchObj) {
-        throw "Invalid keys: "+keys+"  (key "+keys[i]+" not found)";
+        console.error("Invalid keys: "+keys+"  (key "+keys[i]+" not found)");
+        return null;
       }
     }
     return searchObj;
   }
   
+
+  SearchAPI.prototype.printMethodInfo = function(isApps, namespace, methodIndex, isEvent) {
+
+    var namespaceTree = this.getSubtree(isApps, [namespace]);
+
+    var branch = isEvent?'events' : 'functions';
+    var subtree = namespaceTree[branch][methodIndex];
+
+    if (!subtree) {
+      return 'Invalid method or namespace: '+[namespace, branch, methodIndex];
+    }
+    
+    var out = '';
+
+    out += this.printMethodParamsDetails(namespaceTree, subtree);
+    out += nl;
+
+    out += '<span class="namespace">'+namespace+'.</span><span class="fname">'+subtree.name+'</span>';
+
+    if (isEvent) {
+      out += '.<span class="namespace">addListener</span>( function';
+    }
+    out += '( ';
+
+    out += this.printMethodParamsSimpleList(subtree);
+
+    if (isEvent) {
+      out += '  )';
+    }
+
+    out += ' );';
+
+    return out;
+  }
+
+  var nl='\n';
+  var INDENT='    ';
+
+
+  /**
+    print param names delimited by commas
+  **/
+
+  SearchAPI.prototype.printMethodParamsSimpleList = function(subtree) {
+    var out = '';
+    var params = subtree['properties'] || subtree['parameters'] || [];
+    for (var i=0; i<params.length; i++) {
+      out += '<span class="param">'+params[i].name+'</span>';
+      if (i<params.length-1) {
+        out += ', ';
+      }
+    }
+    return out;
+  }
+
+
+  /**
+    Print a comment section with name, type and description for each param:
+
+    //
+    <functionHeader>
+    <commentDelimiter>
+    <functionBlock>
+    <commentDelimiter>
+    //
+
+    <functionBlock> ::= <indexedParam>*
+    <indexedParam> ::= <index> ': ' <nonIndexedParam>
+    <nonIndexedParam> ::= ( <functionParam> | <objectParam> | <simpleParam> )  <eol> 
+    <functionParam> ::= <simpleParam> <functionBlock>
+    <objectParam> ::= <simpleParam> <objectBlock>
+    <simpleParam> ::= <paramName> ', ' <paramType> <arrayindicator> ' : ' <paramDescription>
+    <objectBlock> ::= '{' <eol> <nonIndexedParam>+ '}' <eol>
+
+
+  Example: 
+  
+  chrome.alarms.create( name, options, myCallback, arrays )
+
+  0-name, string: Optional name to identify this alarm.
+  1-options, object: chunk of parameters blabla
+      {
+          when, double: Time at which blablabla
+          callback, function(id, visible) : sflksflsdkf
+              0-id, string: alarm id
+              1-visible, boolean: show be shown or not
+      }
+  2-myCallback, function(resultOptions) : callback used to notify when things go bad
+      resultOptions, object: sldkflsdkfdslkflsd
+          {
+              when, double: Time at which blablabla
+              callback, function(id, visible): blablablabllbalbla
+                  0-id, string: alarm id
+                  1-visible, boolean: show be shown or not
+          }
+  3-arrays, object[]: chunk of parameters blabla
+      {
+          when, double: Time at which blablabla
+          callback, function(id, visible) : sflksflsdkf
+              0-id, string: alarm id
+              1-visible, boolean: show be shown or not
+      }
+
+  **/
+  SearchAPI.prototype.printMethodParamsDetails = function(namespaceTree, subtree) {
+    var out = this.printParamsBlock(namespaceTree, subtree, subtree, true, INDENT);
+    if (out && out!='') {
+      out = out.replace(/\n+\s*\n/g, '\n'); 
+
+      out = '/**'+nl+nl+out+nl+'**/'+nl;
+    }
+    return out;
+  }
+
+  SearchAPI.prototype.printParamsBlock = function(namespaceTree, functionTree, subtree, indexed, indent) {
+    var out = '';
+    if (!subtree) {
+      return out;
+    }
+    var params = subtree['properties'] || subtree['parameters'] || [];
+    for (var i=0; i<params.length; i++) {
+        out += indent;
+        //if (indexed) out += i+'-';
+        out += this.printParam(namespaceTree, functionTree, params[i], i, indent);
+        out += nl;
+    }
+    if (subtree['returns']) {
+      out += '<br><span class="returns">RETURNS</span> ';
+      out += this.printParam(namespaceTree, functionTree, subtree.returns, 0, indent);
+    }
+    return out;
+  }
+
+
+  var cleanDescription = function(description, eatDoubleLines) {
+    if (!description || description === '') {
+      return '';
+    }
+    description = ': '+description;
+    if (eatDoubleLines) {
+     return description.replace(/<br\/?>/gi, ''); 
+    }
+    return description;
+  }
+
+  SearchAPI.prototype.findLinkedTypeSubtree = function(namespaceTree, name) {
+    var types = namespaceTree['types'];
+    for (var i=0; i<types.length; i++) {
+      if (types[i].name === name) {
+        return types[i];
+      }
+    }
+    return null;
+  }
+
+  SearchAPI.prototype.printParam = function(namespaceTree, functionTree, subtree, index, indent) {
+    var out = '';
+
+    var name = subtree.name;
+    var description = subtree.description;
+    var typeSuffix = '';
+
+    if ( subtree['array'] ) {
+      subtree = subtree['array'];
+      typeSuffix = '[]';
+    }
+
+    if ( subtree.simple_type==='function' ) { 
+    // callback/function
+      var paramType = 'function(';
+      var callbackSubtree = functionTree['callback'];
+      if (callbackSubtree) {
+        paramType += this.printMethodParamsSimpleList(callbackSubtree);
+      }
+      paramType += ')';
+      out += this.printSimpleParam(name, paramType+typeSuffix, description);
+      out += nl;
+      out += this.printParamsBlock(namespaceTree, functionTree, callbackSubtree, true, indent+INDENT);
+
+    } else if (subtree['link']) {
+    // object
+      var objectSubtree = this.findLinkedTypeSubtree(namespaceTree, subtree.link.name);
+      if (objectSubtree) {
+        out += this.printSimpleParam(name, 'object'+typeSuffix, description);
+        out += nl;
+        out += this.printParamsBlock(namespaceTree, functionTree, objectSubtree, false, indent+INDENT);
+      }
+
+    } else {
+    // simple param
+      out += this.printSimpleParam(name, subtree.simple_type+typeSuffix, description);
+    }
+
+    return out;
+  }
+
+  SearchAPI.prototype.printSimpleParam = function(paramName, paramType, description) {
+    var out='<span class="param">' + paramName + '</span>, ';
+    out += '<span class="paramType">' + paramType + '</span>';
+    out += '<span class="desc">' + cleanDescription(description, true) + '</span>';
+    return out;
+  }
+
+
   exports.SearchAPI = SearchAPI;
 
 })(window);
+
+
 
 
 
@@ -100,7 +305,9 @@ window.addEventListener('DOMContentLoaded', function() {
   var searchModule = new SearchAPI();
   var searchBox = document.getElementById("searchbox");
   var resultsBox = document.getElementById("results");
-  var isApps = true;
+  var appsCheckbox = document.getElementById("apps");
+  var extensionsCheckbox = document.getElementById("extensions");
+  var isApps = appsCheckbox.checked;
 
   var renderFunctionReturn = function(f, key, withDescription) {
     var el=document.createElement('span');
@@ -147,7 +354,7 @@ window.addEventListener('DOMContentLoaded', function() {
   var renderFunctionHeader = function(f, isEvent, key) {
     var header=document.createElement('div');
     header.setAttribute("data-name", key);
-    header.setAttribute("data-type", 'function');
+    header.setAttribute("data-type", isEvent?'event':'function');
 
     // render the return type, if any:
     if (!isEvent) {
@@ -187,59 +394,14 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
 
-  var renderTypeStructure = function(link, namespace, el) {
-    var types = searchModule.getSubtree(isApps, [namespace, 'types']);
-    for (var i=0; i<types.length; i++) {
-      if (types[i].name === link.name) {
-        el.insertAdjacentText('beforeEnd', '{');
-        if (types[i]['properties']) {
-          types[i]['properties'].reduce(reduceParameters, [namespace, el]);
-        }
-        el.insertAdjacentText('beforeEnd', ' }');
-      }
-    }
-  }
-
-
-  var reduceParameters = function(data, cur, index, ar) {
-    var param=document.createElement('div');
-    if ( cur["link"] ) {
-      param.className='struct';
-      renderTypeStructure(cur["link"], data[0], param);
-    } else {
-      param.insertAdjacentText('beforeEnd', cur.name);
-      if (index<ar.length-1) param.insertAdjacentText('beforeEnd', ',');
-      param.insertAdjacentText('beforeEnd', '   // ('+getBestType(cur)+')');
-      if (cur.description) {
-        param.insertAdjacentHTML('beforeEnd', " " + getBestDescription(cur, true));
-      }
-    }
-    data[1].appendChild(param);
-    return data;
-  }
-
-
   // Render the box with a simple code representing the method
   var renderFunctionDetail = function(f, isEvent, key) {
     
-    var detail=document.createElement('pre');
-    detail.className = 'detail';
     var keys = key.split(KEY_SEP);
 
-    if (f['parameters']) {
-      detail.insertAdjacentText('beforeEnd', keys[0]+'.'+f.name+'(');
-      f['parameters'].reduce(reduceParameters, [keys[0], detail]);
-    }
-      
-    detail.insertAdjacentText('beforeEnd', ');');
-    // render the return type, if any:
-    if (!isEvent && f["returns"] && f.returns!='void') {
-      var returns=document.createElement('span');
-      returns.className = 'returnDetail';
-      returns.insertAdjacentText('beforeEnd', '  // Returns ');
-      returns.appendChild( renderFunctionReturn(f, key, true) );
-      detail.appendChild(returns);
-    }
+    var detail=document.createElement('pre');
+    detail.className = 'detail';
+    detail.innerHTML = searchModule.printMethodInfo(isApps, keys[0], keys[keys.length-1], isEvent);
 
     return detail;
   }
@@ -281,23 +443,29 @@ window.addEventListener('DOMContentLoaded', function() {
         var fullKey=parentKeys.concat(['events', i]).join(KEY_SEP);
         container.appendChild( renderFunctionHeader(f, true, fullKey) );
       }
-    } else if (parentType === 'function' ) {
+
+    } else if (parentType === 'function'  || parentType === 'event') {
       if (!container.getAttribute('data-state')) {
         var fullKey=container.getAttribute('data-name');
-        container.appendChild( renderFunctionDetail(results, false, fullKey) );
-	container.setAttribute('data-state', 'open');
+        container.appendChild( renderFunctionDetail(results, parentType === 'event', fullKey) );
+        container.setAttribute('data-state', 'open');
       }
     }
   };
 
-  var removeAllSiblingsOfType = function (node, type) {
-    var children = node.parentNode.getElementsByTagName('div');
-    for (var i=children.length-1; i>=0; i--) {
-      if (children.item(i)!=node) {
-        node.parentNode.removeChild(children.item(i));
-      }
-    }
-  };
+  var search = function() {
+    
+    var searchStr = searchBox.value;
+
+    // track event
+    _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'search', searchStr])
+
+    // clear previous results
+    while (resultsBox.hasChildNodes())
+      resultsBox.removeChild(resultsBox.lastChild);
+
+    searchModule.search(isApps, searchStr);
+  }
 
   // event listeners:
 
@@ -315,16 +483,24 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  searchBox.addEventListener('keyup', function() {
-    // clear previous results
-    while (resultsBox.hasChildNodes())
-      resultsBox.removeChild(resultsBox.lastChild);
+  searchBox.addEventListener('keyup', search);
 
-    searchModule.search(isApps, searchBox.value);
+  appsCheckbox.addEventListener('change', function(e) {
+    isApps = appsCheckbox.checked;
+    search();
+  });
+  extensionsCheckbox.addEventListener('change', function() {
+    isApps = appsCheckbox.checked;
+    search();
   });
 
+  document.querySelector('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    search();
+  });
 
   resultsBox.addEventListener('click', function(e) {
+
     var element = e.target;
     var parentType=e.target.getAttribute('data-type');
 
@@ -341,10 +517,16 @@ window.addEventListener('DOMContentLoaded', function() {
     if (state==='open') {
       // close
     } else {
-      var keys=element.getAttribute('data-name').split(KEY_SEP);
+      var keysStr = element.getAttribute('data-name');
+      var keys = keysStr.split(KEY_SEP);
+
+      // track event
+      _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
+    
       var subtree=searchModule.getSubtree(isApps, keys);
       appendChildren(subtree, element, keys, parentType);
       e.stopPropagation();
+
     }
   });
 
