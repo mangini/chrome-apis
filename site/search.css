@@ -45,10 +45,6 @@ button:hover {
   background: rgb(191, 223, 252);
 }
 
-#results div[data-state="open"] {
-  cursor: auto;
-}
-
 #results > div {
   cursor: pointer;
   display: inline-block;

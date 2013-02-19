@@ -4,11 +4,16 @@ var KEY_SEP = '|';
 (function(exports) {
 
   var SearchAPI = function() {
+    this.isApps = true;
     this.appsApi = null;
     this.extensionsApi = null;
     this.queuedSearchTerm = null;
     this.listener = null;
     this.initialize();
+  }
+
+  SearchAPI.prototype.setSearchOnApps = function(isApps) {
+    this.isApps = isApps;
   }
 
   SearchAPI.prototype.initialize = function() {
@@ -62,9 +67,9 @@ var KEY_SEP = '|';
     return false;
   }
 
-  SearchAPI.prototype.search = function(isApps, str) {
-    if ((isApps && !this.appsApi) || (!isApps && !this.extensionsApi)) {
-      this.queuedSearchTerm = [isApps, str];
+  SearchAPI.prototype.search = function(str) {
+    if ((this.isApps && !this.appsApi) || (!this.isApps && !this.extensionsApi)) {
+      this.queuedSearchTerm = [this.isApps, str];
       return;
     }
 
@@ -73,7 +78,7 @@ var KEY_SEP = '|';
 
     // TODO: make this faster by using indexedDB
     var re = new RegExp("\\b"+str,"i");
-    var api=isApps?this.appsApi:this.extensionsApi;
+    var api=this.isApps?this.appsApi:this.extensionsApi;
     for (var namespace in api) {
       if (re.test(namespace)) {
         results[namespace] = api[namespace];
@@ -91,9 +96,9 @@ var KEY_SEP = '|';
       
   }
 
-  SearchAPI.prototype.getSubtree = function(isApps, keys) {
+  SearchAPI.prototype.getSubtree = function(keys) {
 
-    var searchObj=isApps?this.appsApi:this.extensionsApi;
+    var searchObj=this.isApps?this.appsApi:this.extensionsApi;
 
     for (var i=0; i<keys.length; i++) {
       searchObj = searchObj[keys[i]];
@@ -106,9 +111,9 @@ var KEY_SEP = '|';
   }
   
 
-  SearchAPI.prototype.printMethodInfo = function(isApps, namespace, methodIndex, isEvent) {
+  SearchAPI.prototype.printMethodInfo = function(namespace, methodIndex, isEvent) {
 
-    var namespaceTree = this.getSubtree(isApps, [namespace]);
+    var namespaceTree = this.getSubtree([namespace]);
 
     var branch = isEvent?'events' : 'functions';
     var subtree = namespaceTree[branch][methodIndex];
@@ -243,7 +248,9 @@ var KEY_SEP = '|';
 
   SearchAPI.prototype.fixDescriptionLinks = function(description, eatDoubleLines) {
     if (description) {
-      description = description.replace(fixLinksRe, "$1 target=\"blank\" $2http://developer.chrome.com/trunk/apps/");
+      description = description.replace(fixLinksRe, 
+        "$1 target=\"blank\" $2http://developer.chrome.com/trunk/"+
+        (this.isApps?"apps":"extensions")+"/");
     }
     return description;
   }
@@ -418,7 +425,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     var detail=document.createElement('pre');
     detail.className = 'detail';
-    detail.innerHTML = searchModule.printMethodInfo(isApps, keys[0], keys[keys.length-1], isEvent);
+    detail.innerHTML = searchModule.printMethodInfo(keys[0], keys[keys.length-1], isEvent);
 
     return detail;
   }
@@ -523,7 +530,7 @@ window.addEventListener('DOMContentLoaded', function() {
     while (resultsBox.hasChildNodes())
       resultsBox.removeChild(resultsBox.lastChild);
 
-    searchModule.search(isApps, searchStr);
+    searchModule.search(searchStr);
   }
 
   // event listeners:
@@ -546,10 +553,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
   appsCheckbox.addEventListener('change', function(e) {
     isApps = appsCheckbox.checked;
+    searchModule.setSearchOnApps(isApps);
     search();
   });
   extensionsCheckbox.addEventListener('change', function() {
     isApps = appsCheckbox.checked;
+    searchModule.setSearchOnApps(isApps);
     search();
   });
 
@@ -574,7 +583,22 @@ window.addEventListener('DOMContentLoaded', function() {
     }
     var state=element.getAttribute('data-state');
     if (state==='open') {
+
+      if (parentType!=='function' && parentType!=='namespace') {
+        // do nothing
+        return;
+      }
+
       // close
+      for (var i=element.children.length-1; i>=0; i--) {
+        var child = element.children.item(i);
+        if (parentType==='function' && child.tagName==='PRE') {
+          element.removeChild(child);
+        } else if (parentType==='namespace' && child.tagName==='DIV') {
+          element.removeChild(child);
+        }
+      }
+      element.removeAttribute('data-state');
 
     } else {
       var keysStr = element.getAttribute('data-name');
@@ -583,7 +607,7 @@ window.addEventListener('DOMContentLoaded', function() {
       // track event
       _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
     
-      var subtree=searchModule.getSubtree(isApps, keys);
+      var subtree=searchModule.getSubtree(keys);
       appendChildren(subtree, null, element, keys, parentType);
       e.stopPropagation();
 
