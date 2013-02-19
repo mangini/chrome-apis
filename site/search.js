@@ -52,6 +52,16 @@ var KEY_SEP = '|';
     this.listener = listener;
   }
 
+  var searchForMethod = function(re, methods) {
+    if (!methods) return false;
+    for (var method in methods) {
+      if (re.test(methods[method]['name'])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   SearchAPI.prototype.search = function(isApps, str) {
     if ((isApps && !this.appsApi) || (!isApps && !this.extensionsApi)) {
       this.queuedSearchTerm = [isApps, str];
@@ -59,17 +69,24 @@ var KEY_SEP = '|';
     }
 
     var results = {};
+    var deepResults = {};
+
     // TODO: make this faster by using indexedDB
     var re = new RegExp("\\b"+str,"i");
     var api=isApps?this.appsApi:this.extensionsApi;
     for (var namespace in api) {
       if (re.test(namespace)) {
         results[namespace] = api[namespace];
+      } else {
+        if (searchForMethod(re, api[namespace]['events']) ||  
+          searchForMethod(re, api[namespace]['functions'])) {
+          deepResults[namespace] = api[namespace];
+        }
       }
     }
 
     if (this.listener) {
-      this.listener(results);
+      this.listener(results, deepResults);
     }
       
   }
@@ -222,11 +239,20 @@ var KEY_SEP = '|';
   }
 
 
-  var cleanDescription = function(description, eatDoubleLines) {
+  var fixLinksRe = /(<a )(href=")/g;
+
+  SearchAPI.prototype.fixDescriptionLinks = function(description, eatDoubleLines) {
+    if (description) {
+      description = description.replace(fixLinksRe, "$1 target=\"blank\" $2http://developer.chrome.com/trunk/apps/");
+    }
+    return description;
+  }
+
+  SearchAPI.prototype.cleanDescription = function(description, eatDoubleLines) {
     if (!description || description === '') {
       return '';
     }
-    description = ': '+description;
+    description = ': '+this.fixDescriptionLinks(description);
     if (eatDoubleLines) {
      return description.replace(/<br\/?>/gi, ''); 
     }
@@ -237,7 +263,7 @@ var KEY_SEP = '|';
     var types = namespaceTree['types'];
     for (var i=0; i<types.length; i++) {
       if (types[i].name === name) {
-        return types[i];
+        return types[i];  
       }
     }
     return null;
@@ -287,7 +313,7 @@ var KEY_SEP = '|';
   SearchAPI.prototype.printSimpleParam = function(paramName, paramType, description) {
     var out='<span class="param">' + paramName + '</span>, ';
     out += '<span class="paramType">' + paramType + '</span>';
-    out += '<span class="desc">' + cleanDescription(description, true) + '</span>';
+    out += '<span class="desc">' + this.cleanDescription(description, true) + '</span>';
     return out;
   }
 
@@ -309,25 +335,19 @@ window.addEventListener('DOMContentLoaded', function() {
   var extensionsCheckbox = document.getElementById("extensions");
   var isApps = appsCheckbox.checked;
 
-  var renderFunctionReturn = function(f, key, withDescription) {
+  var renderFunctionReturn = function(f, key) {
     var el=document.createElement('span');
     if (f['returns']) {
       el.insertAdjacentText('beforeEnd', getBestType(f.returns));
-      if (withDescription && f.returns.description) {
-        el.insertAdjacentHTML('beforeEnd', ": " + getBestDescription(f.returns, true));
-      }
     } else {
       el.innerText = 'void';
     }
     return el;
   }
 
-  var getBestDescription = function(obj, eatDoubleLines) {
+  var getBestDescription = function(obj) {
     if (obj['description']) {
-      if (eatDoubleLines) {
-       return obj.description.replace(/<br\/?><br\/?>/gi, '<br>'); 
-      }
-      return obj.description;
+      return searchModule.fixDescriptionLinks(obj.description);
     }
     return '(no description)';
   }
@@ -344,14 +364,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  var renderFunctionName = function(f, isEvent, key) {
-    var fname=document.createElement('span');
-    fname.className = 'fname';
-    fname.innerText = f.name;
-    return fname;
-  }
-
-  var renderFunctionHeader = function(f, isEvent, key) {
+  var renderFunctionHeader = function(f, name, isEvent, key) {
     var header=document.createElement('div');
     header.setAttribute("data-name", key);
     header.setAttribute("data-type", isEvent?'event':'function');
@@ -364,7 +377,11 @@ window.addEventListener('DOMContentLoaded', function() {
 
     header.insertAdjacentText('beforeEnd', '.');
     // render the function name
-    header.appendChild( renderFunctionName(f, isEvent, key) );
+    var fname=document.createElement('span');
+    fname.className = 'fname';
+    fname.innerHTML = name;
+
+    header.appendChild( fname );
 
     if (isEvent) {
       header.insertAdjacentText('beforeEnd', '.addListener');
@@ -406,42 +423,70 @@ window.addEventListener('DOMContentLoaded', function() {
     return detail;
   }
 
-  var appendChildren = function(results, container, parentKeys, parentType) {
+  var createNamespaceElement = function(namespace, searchRe, filterMethodsBy) {
+    var el=document.createElement('div');
+
+    var name = namespace;
+    if (searchRe) {
+      name=name.replace(searchRe, '<b>$1</b>');
+    }
+
+    el.innerHTML=name;
+    el.setAttribute("data-name", namespace);
+    el.setAttribute("data-type", 'namespace');
+    if (filterMethodsBy) {
+      el.setAttribute("data-filter", filterMethodsBy);
+    }
+
+    return el;
+  }
+
+  var appendChildren = function(results, deepResults, container, parentKeys, parentType) {
     container = container || resultsBox;
     parentKeys = parentKeys || [];
+    var searchRe = new RegExp('\\b('+searchBox.value+')', 'i');
 
     var lastNamespaceAdded = null;
     var namespacesInResult = 0;
     // append namespaces
     if ( !parentType) {
+
       for (var i in results) {
         namespacesInResult++;
         lastNamespaceAdded = i;
-        var el=document.createElement('div');
-        el.innerText=i;
-        el.setAttribute("data-name", i);
-        el.setAttribute("data-type", 'namespace');
-        container.appendChild( el );
+        container.appendChild( createNamespaceElement(i, searchRe) );
+      }
+      if (deepResults) for (var i in deepResults) {
+        namespacesInResult++;
+        lastNamespaceAdded = i;
+        container.appendChild( createNamespaceElement(i, null, searchBox.value) );
       }
     }
 
     // append functions and events of given namespace
     if (!parentType && namespacesInResult==1) {
-      results = results[lastNamespaceAdded];
+      results = results[lastNamespaceAdded] || deepResults[lastNamespaceAdded];
       container = container.lastElementChild;
       parentType = 'namespace';
       parentKeys = [lastNamespaceAdded];
     }
     if (parentType === 'namespace' ) {
+      container.setAttribute('data-state', 'open');
       if (results['functions']) for (var i=0; i<results['functions'].length; i++) {
         var f = results['functions'][i];
         var fullKey=parentKeys.concat(['functions', i]).join(KEY_SEP);
-        container.appendChild( renderFunctionHeader(f, false, fullKey) );
+        var name = checkFilter(container, f, searchRe);
+        if (name) {
+          container.appendChild( renderFunctionHeader(f, name, false, fullKey) );
+        }
       }
       if (results['events']) for (var i=0; i<results['events'].length; i++) {
         var f = results['events'][i];
         var fullKey=parentKeys.concat(['events', i]).join(KEY_SEP);
-        container.appendChild( renderFunctionHeader(f, true, fullKey) );
+        var name = checkFilter(container, f, searchRe);
+        if (name) {
+          container.appendChild( renderFunctionHeader(f, name, true, fullKey) );
+        }
       }
 
     } else if (parentType === 'function'  || parentType === 'event') {
@@ -452,6 +497,20 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     }
   };
+
+
+  var checkFilter = function(container, subtree, searchRe) {
+    var isFiltered = container.hasAttribute('data-filter');
+    var name = subtree['name'];
+    if (!isFiltered) {
+      return name;
+    }
+    if (searchRe.test(subtree['name'])) {
+      return name.replace(searchRe, '<b>$1</b>');
+    }
+    return null;
+  }
+
 
   var search = function() {
     
@@ -516,6 +575,7 @@ window.addEventListener('DOMContentLoaded', function() {
     var state=element.getAttribute('data-state');
     if (state==='open') {
       // close
+
     } else {
       var keysStr = element.getAttribute('data-name');
       var keys = keysStr.split(KEY_SEP);
@@ -524,7 +584,7 @@ window.addEventListener('DOMContentLoaded', function() {
       _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
     
       var subtree=searchModule.getSubtree(isApps, keys);
-      appendChildren(subtree, element, keys, parentType);
+      appendChildren(subtree, null, element, keys, parentType);
       e.stopPropagation();
 
     }

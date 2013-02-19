@@ -69,6 +69,11 @@ button:hover {
   font-weight: bold;
 }
 
+.fname > b, #results > div[data-type="namespace"] > b {
+  color: red;
+}
+
+.
 #results a {
   color: inherit;
   text-decoration: inherit;
