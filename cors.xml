@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CorsConfig>
+  <Cors>
+    <Origins>
+      <Origin>http://www.chromeappsnow.com</Origin>
+    </Origins>
+    <Methods>
+      <Method>GET</Method>
+      <Method>HEAD</Method>
+    </Methods>
+    <ResponseHeaders>
+      <ResponseHeader>x-goog-meta-foo1</ResponseHeader>
+    </ResponseHeaders>
+    <MaxAgeSec>1800</MaxAgeSec>
+  </Cors>
+</CorsConfig>
