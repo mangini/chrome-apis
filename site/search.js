@@ -28,8 +28,8 @@ var KEY_SEP = '|';
   }
 
   SearchAPI.prototype.finishedLoading = function() {
-    if (this.appsApi && this.extensionsApi && this.queuedSearchTerm) {
-      this.search(this.queuedSearchTerm[0], this.queuedSearchTerm[1]);
+    if (this.appsApi && this.extensionsApi && this.queuedSearchTerm!=null) {
+      this.search(this.queuedSearchTerm);
     }
   }
 
@@ -69,7 +69,7 @@ var KEY_SEP = '|';
 
   SearchAPI.prototype.search = function(str) {
     if ((this.isApps && !this.appsApi) || (!this.isApps && !this.extensionsApi)) {
-      this.queuedSearchTerm = [this.isApps, str];
+      this.queuedSearchTerm = str;
       return;
     }
 
@@ -77,6 +77,7 @@ var KEY_SEP = '|';
     var deepResults = {};
 
     // TODO: make this faster by using indexedDB
+    str = str.replace(/[^\w.]/g, '_');
     var re = new RegExp("\\b"+str,"i");
     var api=this.isApps?this.appsApi:this.extensionsApi;
     for (var namespace in api) {
@@ -103,7 +104,6 @@ var KEY_SEP = '|';
     for (var i=0; i<keys.length; i++) {
       searchObj = searchObj[keys[i]];
       if (!searchObj) {
-        console.error("Invalid keys: "+keys+"  (key "+keys[i]+" not found)");
         return null;
       }
     }
@@ -237,8 +237,9 @@ var KEY_SEP = '|';
         out += nl;
     }
     if (subtree['returns']) {
-      out += '<br><span class="returns">RETURNS</span> ';
+      out += '<br>    <span class="returns">RETURNS</span> ';
       out += this.printParam(namespaceTree, functionTree, subtree.returns, 0, indent);
+      out += '<br>';
     }
     return out;
   }
@@ -395,7 +396,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
     appendTextNode(header, '.');
     // render the function name
-    var fname=document.createElement('span');
+    var fname=document.createElement('a');
+    fname.href = '?q='+f['name'];
     fname.className = 'fname';
     fname.innerHTML = name;
 
@@ -460,15 +462,17 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   var appendChildren = function(results, deepResults, container, parentKeys, parentType) {
+
     container = container || resultsBox;
     parentKeys = parentKeys || [];
-    var searchRe = new RegExp('\\b('+searchBox.value+')', 'i');
+    var str = searchBox.value.replace(/[^\w.]/g, '_');
+    var searchRe = new RegExp('\\b('+str+')', 'i');
 
     var lastNamespaceAdded = null;
     var namespacesInResult = 0;
+
     // append namespaces
     if ( !parentType) {
-
       for (var i in results) {
         namespacesInResult++;
         lastNamespaceAdded = i;
@@ -477,17 +481,19 @@ window.addEventListener('DOMContentLoaded', function() {
       if (deepResults) for (var i in deepResults) {
         namespacesInResult++;
         lastNamespaceAdded = i;
-        container.appendChild( createNamespaceElement(i, null, searchBox.value) );
+        container.appendChild( createNamespaceElement(i, null, str) );
       }
     }
 
-    // append functions and events of given namespace
+    // If there is only one namespace as a result, let's open it
     if (!parentType && namespacesInResult==1) {
       results = results[lastNamespaceAdded] || deepResults[lastNamespaceAdded];
       container = container.lastElementChild;
       parentType = 'namespace';
       parentKeys = [lastNamespaceAdded];
     }
+
+    // append functions and events of given namespace
     if (parentType === 'namespace' ) {
       container.setAttribute('data-state', 'open');
       if (results['functions']) for (var i=0; i<results['functions'].length; i++) {
@@ -516,6 +522,16 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   };
 
+  var getParameterByName = function(name) {
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regexS = "[\\?&]" + name + "=([^&#]*)";
+    var regex = new RegExp(regexS);
+    var results = regex.exec(window.location.search);
+    if(results == null)
+      return "";
+    else
+      return decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
 
   var checkFilter = function(container, subtree, searchRe) {
     var isFiltered = container.hasAttribute('data-filter');
@@ -531,7 +547,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
   var search = function() {
-    
+    changeURLParams();
     var searchStr = searchBox.value;
 
     // track event
@@ -544,21 +560,14 @@ window.addEventListener('DOMContentLoaded', function() {
     searchModule.search(searchStr);
   }
 
+
+  var changeURLParams = function() {
+    window.history.pushState('','','?q='+searchBox.value+'&t='+(isApps?'a':'e'));
+  }
+
   // event listeners:
 
   searchModule.addSearchListener( appendChildren );
-
-  document.addEventListener('keydown', function(e) {
-    if (e.keyCode === 17 ) { // Ctrl
-      resultsBox.classList.add('showlinks');
-    }
-  });
-
-  document.addEventListener('keyup', function(e) {
-    if (e.keyCode === 17 ) { // Ctrl
-      resultsBox.classList.remove('showlinks');
-    }
-  });
 
   searchBox.addEventListener('keyup', search);
 
@@ -567,7 +576,9 @@ window.addEventListener('DOMContentLoaded', function() {
     searchModule.setSearchOnApps(isApps);
     search();
   });
+
   extensionsCheckbox.addEventListener('change', function() {
+    changeURLParams();
     isApps = appsCheckbox.checked;
     searchModule.setSearchOnApps(isApps);
     search();
@@ -624,5 +635,17 @@ window.addEventListener('DOMContentLoaded', function() {
 
     }
   });
+
+
+  // Initialize search with query params, if necessary:
+  var typeParam = getParameterByName("t");
+  isApps = !typeParam || typeParam!=='e';
+  appsCheckbox.checked=isApps;
+  extensionsCheckbox.checked=!isApps;
+  searchModule.setSearchOnApps(isApps);
+
+  var queryParam = getParameterByName("q");
+  searchBox.value = queryParam || '';
+  search();
 
 });
