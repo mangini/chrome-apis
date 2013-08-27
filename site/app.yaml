@@ -15,6 +15,11 @@ handlers:
   static_files: static/\1
   upload: static/(.*\.html)
 
+- url: /(.*\.json)
+  mime_type: text/javascript
+  static_files: static/\1
+  upload: static/(.*\.json)
+
 - url: /(.*\.js)
   mime_type: text/javascript
   static_files: static/\1
