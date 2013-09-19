@@ -1,0 +1,122 @@
+body {
+  font-family: Verdana, Arial;
+  color: #333;
+  padding: 20px;
+}
+
+button {
+  background-image: -webkit-linear-gradient(top,#4d90fe,#4787ed);
+  background-image: -moz-linear-gradient(top,#4d90fe,#4787ed);
+  color: white;
+  padding: 5px 10px;
+  font-weight: bold;
+  border-radius: 2px;
+  border: 1px solid #3079ed;
+  cursor: pointer;        
+}
+button:hover {
+  background-image: -webkit-linear-gradient(top,#4d90fe,#357ae8);
+  background-image: -moz-linear-gradient(top,#4d90fe,#357ae8);
+  border: 1px solid #2f5bb7;
+}
+
+.search {
+  text-align: center;
+}
+
+.search input[type="text"] {
+  width: 60%;
+  min-width: 300px;
+  border: 1px solid #CCC;
+  border-radius: 3px;
+  font-size: 1.4em;
+  line-height: 1.4em;
+  padding: 10px 20px;
+}
+
+#results {
+  margin-top: 30px;
+  text-align: center;
+}
+
+#results > div:hover {
+  background: rgb(248, 248, 250);
+}
+
+#results > div.selected {
+  background: rgb(191, 223, 252);
+}
+
+#results > div {
+  cursor: pointer;
+  display: inline-block;
+  text-align: left;
+  padding: 10px 20px;
+  width: 80%;
+  min-width: 400px;
+  border-radius: 5px;
+}
+
+#results > div[data-type="namespace"] > div {
+  padding: 0.1em 0 0.2em 4em;
+  text-indent: -2em;
+  font-family: Courier New;
+}
+
+.fname {
+  font-weight: bold;
+}
+
+.fname > b, #results > div[data-type="namespace"] > b {
+  color: red;
+}
+
+#results a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+.showlinks#results span[data-name], span[data-name]:hover, .showlinks#results a, #results a:hover {
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.description {
+  font-weight: normal;
+  font-family: Verdana, Arial;
+}
+
+fieldset {
+  border: 0px none;
+}
+
+pre {
+  margin-left: 0;
+  text-indent: 0;
+  background-color: #222;
+  border-radius: 8px;
+  padding: 20px;
+  color: #ddd;
+  white-space: pre-wrap;
+}
+
+.param {
+  color: rgb(247, 182, 84);
+}
+
+pre .fname {
+  color: rgb(208, 247, 84);
+}
+
+pre .desc {
+  color: rgb(156, 156, 156);
+}
+pre .namespace, pre .returns {
+  color: rgb(132, 216, 255);
+}
+
+pre .paramType {
+  color: rgb(255, 47, 122);
+}
+

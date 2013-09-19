@@ -77,7 +77,7 @@ if __name__ == '__main__':
   import compiled_file_system as compiled_fs
 
   local_path = opts.directory
-  ConfigureFakeFetchers(os.path.join(local_path, DOCS_PATH))
+  ConfigureFakeFetchers() #os.path.join(local_path, DOCS_PATH))
 
   import handler
 
