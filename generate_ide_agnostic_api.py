@@ -36,7 +36,7 @@ def _Add_Api_obj(api_obj, api_data, key):
 
 def GenerateAPI(inst, apiType):
   # uses _api_list_data_source and _api_data_source
-  templates = inst._template_data_source_factory.Create(None, apiType+"/api.json")
+  templates = inst.template_data_source_factory.Create(None, apiType+"/api.json")
 
   content = None
   api_names = templates._api_list_data_source.get(apiType)
@@ -70,19 +70,12 @@ if __name__ == '__main__':
           'docs. Please, use -h option to get help on command line options.\n')
     exit()
 
-  sys.path.append(os.path.join(opts.directory, "docs", "server2"))
+  sys.path.insert(0, os.path.join(opts.directory, "docs", "server2"))
 
-  from fake_fetchers import ConfigureFakeFetchers
-  from file_system import FileNotFoundError
-  import compiled_file_system as compiled_fs
-
-  local_path = opts.directory
-  ConfigureFakeFetchers() #os.path.join(local_path, DOCS_PATH))
-
-  import handler
+  from server_instance import ServerInstance
 
   channel_name = opts.channel
-  handler._CleanBranches()
-  inst = handler._GetInstanceForBranch(channel_name, local_path)
+  inst = ServerInstance.ForLocal()
+  #inst = handler._GetInstanceForBranch(channel_name, local_path)
   
   print(GenerateAPI(inst, opts.type))
