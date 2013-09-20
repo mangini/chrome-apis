@@ -570,7 +570,8 @@ window.addEventListener('DOMContentLoaded', function() {
     var searchStr = searchBox.value;
 
     // track event
-    _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'search', searchStr])
+    if ("_gaq" in window)
+      _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'search', searchStr])
 
     // clear previous results
     while (resultsBox.hasChildNodes())
@@ -581,7 +582,9 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
   var changeURLParams = function() {
-    window.history.pushState('','','?q='+searchBox.value+'&t='+(isApps?'a':'e'));
+    if (window.history.pushState) {
+      window.history.pushState('','','?q='+searchBox.value+'&t='+(isApps?'a':'e'));
+    }
   }
 
   var renderMetadata = function() {
@@ -659,7 +662,8 @@ window.addEventListener('DOMContentLoaded', function() {
       var keys = keysStr.split(KEY_SEP);
 
       // track event
-      _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
+      if ("_gaq" in window) 
+        _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
     
       var subtree=searchModule.getSubtree(keys);
       appendChildren(subtree, null, element, keys, parentType);

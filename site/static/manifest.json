@@ -1,0 +1,12 @@
+{
+  "manifest_version": 2,
+  "name": "Chrome API search",
+  "version": "2",
+  "minimum_chrome_version": "23",
+  "permissions": [ "http://chrome-api.storage.googleapis.com/*" ],
+  "app": {
+    "background": {
+      "scripts": ["main.js"]
+    }
+  }
+}

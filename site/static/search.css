@@ -1,3 +1,12 @@
+html, body {
+  height: 100%;
+}
+
+.page {
+  height: 100%;
+  max-width: 100%;
+}
+
 body {
   font-family: Verdana, Arial;
   color: #333;
@@ -51,6 +60,9 @@ button:hover {
 #results {
   margin-top: 30px;
   text-align: center;
+  -webkit-user-select: initial;
+  overflow-y: auto;
+  height: calc( 100% - 180px );
 }
 
 #results > div:hover {
