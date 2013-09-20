@@ -79,6 +79,11 @@ if __name__ == '__main__':
 
   sys.path.insert(0, os.path.join(opts.directory, "docs", "server2"))
 
+  import build_server
+# Copy all the files necessary to run the server. These are cleaned up when the
+# server quits.
+  build_server.main()
+
   from server_instance import ServerInstance
 
   inst = ServerInstance.ForLocal()
