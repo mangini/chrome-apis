@@ -45,7 +45,16 @@ def GenerateAPI(inst, apiType):
     _Add_Api(api, templates, all_apis)
   for api in api_names['chrome']:
     _Add_Api(api, templates, all_apis)
+  
+  import subprocess, datetime
+  git_meta = subprocess.Popen(
+      ['git', 'log', '-1', '--pretty=format:{ "lastcommit": \"%H\", "lastcommit_at": \"%ci\" }', '.'],
+      stdout=subprocess.PIPE).communicate()[0]
 
+  all_apis['_meta'] = { 
+    "git" : json.loads(git_meta),
+    "build" : { "date": datetime.datetime.utcnow().strftime("%Y/%m/%d %H:%M GMT") }
+    }
   content=json.dumps(all_apis, sort_keys=True, indent=2)
   return content
 
@@ -58,8 +67,6 @@ if __name__ == '__main__':
            'should be chrome/common/extensions within a Chromium checkout. Defaults to current dir')
   parser.add_option('-t', '--type', default="apps",
       help='Type of API to generate (apps or extensions). Defaults to "apps"')
-  parser.add_option('-c', '--channel', default="trunk",
-      help='Name of the chromium channel (trunk, dev, beta or stable). Defaults to "trunk"')
 
   (opts, argv) = parser.parse_args()
 
@@ -74,8 +81,6 @@ if __name__ == '__main__':
 
   from server_instance import ServerInstance
 
-  channel_name = opts.channel
   inst = ServerInstance.ForLocal()
-  #inst = handler._GetInstanceForBranch(channel_name, local_path)
   
   print(GenerateAPI(inst, opts.type))

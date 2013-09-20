@@ -23,12 +23,17 @@ while [[ $* ]] ; do
   elif [ "$1x" == "-cx" ] ; then
     echo "No Chrome source code update"
     UPDATE_CHROME=
+  elif [ "$1x" == "-dx" -a -n "$2" ] ; then
+    shift
+    CHROME_SRC="$1"
   else
     echo "Unknown switch: $1"
     exit 1
   fi
   shift
 done
+
+echo "Using Chrome repo at $CHROME_SRC"
 
 # update own source
 git pull

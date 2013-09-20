@@ -34,6 +34,20 @@ button:hover {
   padding: 10px 20px;
 }
 
+.meta {
+  font-size: 9px;
+  color: #666;
+  text-align: center;
+}
+.meta:hover a {
+  color: -webkit-link;
+  text-decoration: underline;
+}
+.meta a {
+  color: #666;
+  text-decoration: none;
+}
+
 #results {
   margin-top: 30px;
   text-align: center;

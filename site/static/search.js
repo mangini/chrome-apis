@@ -17,11 +17,13 @@ var KEY_SEP = '|';
   }
 
   SearchAPI.prototype.initialize = function() {
-    this.loadJson('http://chrome-api.storage.googleapis.com/apps_latest.json', function(result) {
+    this.loadJson('apps_latest.json', function(result) {
+//    this.loadJson('http://chrome-api.storage.googleapis.com/apps_latest.json', function(result) {
       this.appsApi = result;
       this.finishedLoading();
     });
-    this.loadJson('http://chrome-api.storage.googleapis.com/extensions_latest.json', function(result) {
+    this.loadJson('extensions_latest.json', function(result) {
+//    this.loadJson('http://chrome-api.storage.googleapis.com/extensions_latest.json', function(result) {
       this.extensionsApi = result;
       this.finishedLoading();
     });
@@ -36,7 +38,7 @@ var KEY_SEP = '|';
   SearchAPI.prototype.loadJson = function(filename, callback) {
     var client = new XMLHttpRequest();
     var _this = this;
-    client.onreadystatechange = function() {
+    client.onload = function() {
       _this.handleXhr(this, callback);
     };
     client.open("GET", filename);
@@ -81,7 +83,9 @@ var KEY_SEP = '|';
     var re = new RegExp("\\b"+str,"i");
     var api=this.isApps?this.appsApi:this.extensionsApi;
     for (var namespace in api) {
-      if (re.test(namespace)) {
+      if (namespace == '_meta') {
+        continue;
+      } else if (re.test(namespace)) {
         results[namespace] = api[namespace];
       } else {
         if (searchForMethod(re, api[namespace]['events']) ||  
@@ -326,6 +330,21 @@ var KEY_SEP = '|';
   }
 
 
+  SearchAPI.prototype.getMeta = function() {
+    var searchObj=this.isApps?this.appsApi:this.extensionsApi;
+    var meta = searchObj['_meta'] ||
+              {
+                "build": {
+                  "date": "unknown"
+                }, 
+                "git": {
+                  "lastcommit": "unknown", 
+                  "lastcommit_at": "unknown"
+                }
+              };
+     return meta;
+  }
+  
   exports.SearchAPI = SearchAPI;
 
 })(window);
@@ -336,12 +355,12 @@ var KEY_SEP = '|';
 
 window.addEventListener('DOMContentLoaded', function() {
   
-  var searchModule = new SearchAPI();
   var searchBox = document.getElementById("searchbox");
   var resultsBox = document.getElementById("results");
   var appsCheckbox = document.getElementById("apps");
   var extensionsCheckbox = document.getElementById("extensions");
   var isApps = appsCheckbox.checked;
+  var searchModule = new SearchAPI();
 
   searchBox.focus();
 
@@ -565,15 +584,27 @@ window.addEventListener('DOMContentLoaded', function() {
     window.history.pushState('','','?q='+searchBox.value+'&t='+(isApps?'a':'e'));
   }
 
+  var renderMetadata = function() {
+   var versionEl=document.querySelector('#version a');
+   var version=searchModule.getMeta().git.lastcommit;
+   versionEl.innerText = version;
+   versionEl.href="http://git.chromium.org/gitweb/?p=chromium.git;a=commit;H=" + version;
+   document.getElementById('build_date').innerText = searchModule.getMeta().build.date;
+  };
+
   // event listeners:
 
-  searchModule.addSearchListener( appendChildren );
+  searchModule.addSearchListener( function(results, deepResults) {
+    renderMetadata();
+    appendChildren(results, deepResults);
+  }.bind(this));
 
   searchBox.addEventListener('keyup', search);
 
   appsCheckbox.addEventListener('change', function(e) {
     isApps = appsCheckbox.checked;
     searchModule.setSearchOnApps(isApps);
+    renderMetadata();
     search();
   });
 
@@ -581,6 +612,7 @@ window.addEventListener('DOMContentLoaded', function() {
     changeURLParams();
     isApps = appsCheckbox.checked;
     searchModule.setSearchOnApps(isApps);
+    renderMetadata();
     search();
   });
 
