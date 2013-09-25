@@ -4,24 +4,11 @@
     <meta charset="utf-8">
     <title>Chrome API search</title>
     <link href="search.css" rel="stylesheet">
-    <script type="text/javascript">
-
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-38634901-1']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
-</script>
+    <script src="google-analytics-bundle.js"></script>
 </head>
 <body>
 
 <div class="page">
-<a target="_blank" href="https://github.com/mangini/chrome-apis"><img style="position: absolute; top: 0; right: 0; border: 0;" src="forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a>
 
   <div class="search">
   	<form method="GET" action="#">
@@ -34,17 +21,22 @@
     </form>
   </div>
 
-  <div class="meta">
-    Extracted from commit <span id="version"><a href="#" target="_blank"></a></span> 
-    &middot;
-    Generated at <span id="build_date"></span>
-  </div>
-
   <div id="results">
+  </div>
+  
+  <div class="footnote">
+   Generated from Chromium commit <span id="version"><a href="#" target="_blank"></a></span> 
+   at <span id="build_date"></span>
+   <br>
+   Content licensed under the <a href="http://src.chromium.org/viewvc/chrome/trunk/src/LICENSE" target="_blank">Chromium LICENSE</a>. 
+   The source of this app can be found at <a target="_blank" href="https://github.com/mangini/chrome-apis">GitHub</a>.
+   <br>
+   Allow anonymous usage tracking? <span id="allowga"><span>Loading...</span>&nbsp;<a href="#">(change)</a></span>
   </div>
 
 </div>
 
+<script src="api_reader.js"></script>
 <script src="search.js"></script>
 </body>
 </html>

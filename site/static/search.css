@@ -43,16 +43,17 @@ button:hover {
   padding: 10px 20px;
 }
 
-.meta {
+.footnote {
   font-size: 9px;
   color: #666;
   text-align: center;
+  margin-top: 10px;
 }
-.meta:hover a {
+.footnote:hover a {
   color: -webkit-link;
   text-decoration: underline;
 }
-.meta a {
+.footnote a {
   color: #666;
   text-decoration: none;
 }
@@ -62,7 +63,7 @@ button:hover {
   text-align: center;
   -webkit-user-select: initial;
   overflow-y: auto;
-  height: calc( 100% - 180px );
+  height: calc( 100% - 200px );
 }
 
 #results > div:hover {

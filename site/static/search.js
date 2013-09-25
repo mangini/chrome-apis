@@ -17,6 +17,21 @@ var KEY_SEP = '|';
   }
 
   SearchAPI.prototype.initialize = function() {
+    this.apiReader = new APIReader();
+    var onAppsRead = function(result) {
+      this.appsApi = result;
+      this.finishedLoading();
+    }.bind(this);
+    var onExtensionsRead = function(result) {
+      this.extensionsApi = result;
+      this.finishedLoading();
+    }.bind(this);
+
+    this.apiReader.initialize(function() {
+      this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', onAppsRead, onAppsRead);
+      this.apiReader.read('http://chrome-api.storage.googleapis.com/extensions_latest.json', onExtensionsRead, onExtensionsRead);
+    }.bind(this));
+    /*
 //    this.loadJson('apps_latest.json', function(result) {
     this.loadJson('http://chrome-api.storage.googleapis.com/apps_latest.json', function(result) {
       this.appsApi = result;
@@ -26,32 +41,12 @@ var KEY_SEP = '|';
     this.loadJson('http://chrome-api.storage.googleapis.com/extensions_latest.json', function(result) {
       this.extensionsApi = result;
       this.finishedLoading();
-    });
+    });*/
   }
 
   SearchAPI.prototype.finishedLoading = function() {
     if (this.appsApi && this.extensionsApi && this.queuedSearchTerm!=null) {
       this.search(this.queuedSearchTerm);
-    }
-  }
-
-  SearchAPI.prototype.loadJson = function(filename, callback) {
-    var client = new XMLHttpRequest();
-    var _this = this;
-    client.onload = function() {
-      _this.handleXhr(this, callback);
-    };
-    client.open("GET", filename);
-    client.send();
-  }
-
-  SearchAPI.prototype.handleXhr = function(context, callback) {
-    if(context.readyState == 4) {
-      if(context.status != 200 || context.responseText == null) {
-        callback(null);
-        return;
-      }
-      callback.apply(this, [JSON.parse(context.responseText)]);
     }
   }
 
@@ -566,12 +561,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
   var search = function() {
-    changeURLParams();
     var searchStr = searchBox.value;
 
     // track event
-    if ("_gaq" in window)
-      _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'search', searchStr])
+    window.GATracker.sendEvent(isApps?'apps':'extensions', 'search', searchStr)
 
     // clear previous results
     while (resultsBox.hasChildNodes())
@@ -580,12 +573,6 @@ window.addEventListener('DOMContentLoaded', function() {
     searchModule.search(searchStr);
   }
 
-
-  var changeURLParams = function() {
-    if (window.history.pushState) {
-      window.history.pushState('','','?q='+searchBox.value+'&t='+(isApps?'a':'e'));
-    }
-  }
 
   var renderMetadata = function() {
    var versionEl=document.querySelector('#version a');
@@ -602,7 +589,13 @@ window.addEventListener('DOMContentLoaded', function() {
     appendChildren(results, deepResults);
   }.bind(this));
 
-  searchBox.addEventListener('keyup', search);
+  var searchTimer=null;
+  searchBox.addEventListener('keyup', function() {
+    if (searchTimer) {
+      window.clearTimeout(searchTimer);
+    }
+    searchTimer = window.setTimeout(search, 400);
+  });
 
   appsCheckbox.addEventListener('change', function(e) {
     isApps = appsCheckbox.checked;
@@ -612,7 +605,6 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 
   extensionsCheckbox.addEventListener('change', function() {
-    changeURLParams();
     isApps = appsCheckbox.checked;
     searchModule.setSearchOnApps(isApps);
     renderMetadata();
@@ -662,8 +654,7 @@ window.addEventListener('DOMContentLoaded', function() {
       var keys = keysStr.split(KEY_SEP);
 
       // track event
-      if ("_gaq" in window) 
-        _gaq.push(['_trackEvent', isApps?'apps':'extensions', 'expand', keysStr])
+      window.GATracker.sendEvent(isApps?'apps':'extensions', 'expand', keysStr)
     
       var subtree=searchModule.getSubtree(keys);
       appendChildren(subtree, null, element, keys, parentType);
@@ -671,6 +662,29 @@ window.addEventListener('DOMContentLoaded', function() {
 
     }
   });
+
+
+  // analytics initialization
+  var GAService = analytics.getService('api_search_app');
+  window.GATracker = GAService.getTracker('UA-38634901-1');
+  window.GATracker.sendAppView('MainAppView');
+
+  function initAnalyticsConfig(config) {
+    var updateAllowGA = function(isTrackingPermitted) {
+      document.querySelector('#allowga span').innerText = isTrackingPermitted ? 'Yes' : 'No';
+    };
+
+    document.querySelector('#allowga a').addEventListener('click', function(e) {
+      e.preventDefault();
+      var isTrackingPermitted = !config.isTrackingPermitted()
+      config.setTrackingPermitted(isTrackingPermitted);
+      updateAllowGA(isTrackingPermitted);
+    });
+
+    updateAllowGA(config.isTrackingPermitted());
+  }
+
+  GAService.getConfig().addCallback(initAnalyticsConfig);
 
 
   // Initialize search with query params, if necessary:
