@@ -1,16 +1,18 @@
 html, body {
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .page {
   height: 100%;
   max-width: 100%;
+  margin: 20px;
 }
 
 body {
   font-family: Verdana, Arial;
   color: #333;
-  padding: 20px;
 }
 
 button {
@@ -84,7 +86,12 @@ button:hover {
   border-radius: 5px;
 }
 
+#results > div[data-type="namespace"] > div:hover {
+  border-left: 2px solid blue;
+}
+
 #results > div[data-type="namespace"] > div {
+  border-left: 2px solid transparent;
   padding: 0.1em 0 0.2em 4em;
   text-indent: -2em;
   font-family: Courier New;

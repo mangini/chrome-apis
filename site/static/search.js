@@ -9,14 +9,14 @@ var KEY_SEP = '|';
     this.extensionsApi = null;
     this.queuedSearchTerm = null;
     this.listener = null;
-    this.initialize();
+    this.loadAPIs();
   }
 
   SearchAPI.prototype.setSearchOnApps = function(isApps) {
     this.isApps = isApps;
   }
 
-  SearchAPI.prototype.initialize = function() {
+  SearchAPI.prototype.loadAPIs = function(reloadRemote) {
     this.apiReader = new APIReader();
     var onAppsRead = function(result) {
       this.appsApi = result;
@@ -28,20 +28,11 @@ var KEY_SEP = '|';
     }.bind(this);
 
     this.apiReader.initialize(function() {
-      this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', onAppsRead, onAppsRead);
-      this.apiReader.read('http://chrome-api.storage.googleapis.com/extensions_latest.json', onExtensionsRead, onExtensionsRead);
+      this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', 
+        reloadRemote?null:onAppsRead, onAppsRead, reloadRemote);
+      this.apiReader.read('http://chrome-api.storage.googleapis.com/extensions_latest.json', 
+        reloadRemote?null:onExtensionsRead, onExtensionsRead, reloadRemote);
     }.bind(this));
-    /*
-//    this.loadJson('apps_latest.json', function(result) {
-    this.loadJson('http://chrome-api.storage.googleapis.com/apps_latest.json', function(result) {
-      this.appsApi = result;
-      this.finishedLoading();
-    });
-//    this.loadJson('extensions_latest.json', function(result) {
-    this.loadJson('http://chrome-api.storage.googleapis.com/extensions_latest.json', function(result) {
-      this.extensionsApi = result;
-      this.finishedLoading();
-    });*/
   }
 
   SearchAPI.prototype.finishedLoading = function() {
@@ -560,16 +551,19 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
 
+  var clearResultsBox = function() {
+    // clear previous results
+    while (resultsBox.hasChildNodes())
+      resultsBox.removeChild(resultsBox.lastChild);
+  }
+
   var search = function() {
     var searchStr = searchBox.value;
 
     // track event
     window.GATracker.sendEvent(isApps?'apps':'extensions', 'search', searchStr)
 
-    // clear previous results
-    while (resultsBox.hasChildNodes())
-      resultsBox.removeChild(resultsBox.lastChild);
-
+    clearResultsBox();
     searchModule.search(searchStr);
   }
 
@@ -585,6 +579,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // event listeners:
 
   searchModule.addSearchListener( function(results, deepResults) {
+    clearResultsBox();
     renderMetadata();
     appendChildren(results, deepResults);
   }.bind(this));
@@ -611,6 +606,11 @@ window.addEventListener('DOMContentLoaded', function() {
     search();
   });
 
+  document.querySelector('#reloadAPIs').addEventListener('click', function(e) {
+    e.preventDefault();
+    searchModule.loadAPIs(true);
+  });
+    
   document.querySelector('form').addEventListener('submit', function(e) {
     e.preventDefault();
     search();
