@@ -1,5 +1,6 @@
 
 var KEY_SEP = '|';
+const EVENT_NAMESPACE='chrome.events';
 
 (function(exports) {
 
@@ -75,7 +76,8 @@ var KEY_SEP = '|';
         results[namespace] = api[namespace];
       } else {
         if (searchForMethod(re, api[namespace]['events']) ||  
-          searchForMethod(re, api[namespace]['functions'])) {
+          searchForMethod(re, api[namespace]['functions']) ||
+          searchForMethod(re, api[namespace]['properties'])) {
           deepResults[namespace] = api[namespace];
         }
       }
@@ -101,11 +103,38 @@ var KEY_SEP = '|';
   }
   
 
-  SearchAPI.prototype.printMethodInfo = function(namespace, methodIndex, isEvent) {
+  SearchAPI.prototype.printSimpleMethodSignature = function(namespace, typeName, functionObject, type) {
+    var out = '';
+    out += '<span class="namespace">'+namespace+'.</span>';
+    if (typeName) {
+      out += '<span class="tname">'+typeName+'.</span>';
+    }
+
+    out += '<span class="fname">'+functionObject['name']+'</span>';
+
+    if (type!=='property') {
+      out += '( ';
+
+      out += this.printMethodParamsSimpleList(functionObject);
+
+      out += ' );';
+    }
+
+    out += nl;
+    return out;
+  }
+
+  SearchAPI.prototype.printMethodInfo = function(namespace, methodIndex, type) {
 
     var namespaceTree = this.getSubtree([namespace]);
 
-    var branch = isEvent?'events' : 'functions';
+    var branch;
+    switch (type) {
+      case 'event': branch='events'; break;
+      case 'function': branch='functions'; break;
+      case 'property': branch='properties'; break;
+    }
+
     var subtree = namespaceTree[branch][methodIndex];
 
     if (!subtree) {
@@ -114,23 +143,26 @@ var KEY_SEP = '|';
     
     var out = '';
 
+    // Print the detailed comment with parameter descriptions:
     out += this.printMethodParamsDetails(namespaceTree, subtree);
     out += nl;
 
-    out += '<span class="namespace">'+namespace+'.</span><span class="fname">'+subtree.name+'</span>';
-
-    if (isEvent) {
-      out += '.<span class="namespace">addListener</span>( function';
+    if (type==='event') {
+      var eventSubtree = this.getSubtree([EVENT_NAMESPACE, 'types']);
+      var eventTypeSubtree = [];
+      for (var i=0; i<eventSubtree.length; i++) {
+        if (eventSubtree[i].name=='Event') {
+          eventTypeSubtree = eventSubtree[i];
+          break;
+        }
+      }
+      for (var i=0; i<eventTypeSubtree['functions'].length; i++) {
+        var functionObject = eventTypeSubtree['functions'][i];
+        out += this.printSimpleMethodSignature(namespace, subtree['name'], functionObject, type);
+      }
+    } else {
+      out += this.printSimpleMethodSignature(namespace, null, subtree, type);
     }
-    out += '( ';
-
-    out += this.printMethodParamsSimpleList(subtree);
-
-    if (isEvent) {
-      out += '  )';
-    }
-
-    out += ' );';
 
     return out;
   }
@@ -388,18 +420,22 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  var renderFunctionHeader = function(f, name, isEvent, key) {
+  var renderFunctionHeader = function(f, name, type, key) {
     var header=document.createElement('div');
     header.setAttribute("data-name", key);
-    header.setAttribute("data-type", isEvent?'event':'function');
+    header.setAttribute("data-type", type);
 
     // render the return type, if any:
-    if (!isEvent) {
+    if (type==='function') {
       header.appendChild( renderFunctionReturn(f, key) );
       appendTextNode(header, ' ');
+      appendTextNode(header, '.');
+    } else if (type==='event') {
+      appendTextNode(header, 'Event ');
+    } else {
+      appendTextNode(header, ((f['link'] && f['link']['name']) || f['simple_type'])+' ');
     }
 
-    appendTextNode(header, '.');
     // render the function name
     var fname=document.createElement('a');
     fname.href = '?q='+f['name'];
@@ -408,24 +444,25 @@ window.addEventListener('DOMContentLoaded', function() {
 
     header.appendChild( fname );
 
-    if (isEvent) {
-      appendTextNode(header, '.addListener');
-    }
-    appendTextNode(header, '(');
+    if (type==='function') {
+      appendTextNode(header, '(');
 
-    if (f['parameters']) {
-      f['parameters'].forEach(
-        function(cur, index, ar) {
-          var param=document.createElement('span');
-          param.innerHTML = cur.name;
-	        header.appendChild( param );
-          if (index<ar.length-1) {
-	          appendTextNode(header, ', ');
-	        }
-        });
+      if (f['parameters']) {
+        f['parameters'].forEach(
+          function(cur, index, ar) {
+            var param=document.createElement('span');
+            param.innerHTML = cur.name;
+            header.appendChild( param );
+            if (index<ar.length-1) {
+              appendTextNode(header, ', ');
+            }
+          });
+      }
+
+      appendTextNode(header, ')');
     }
 
-    appendTextNode(header, ') : ');
+    appendTextNode(header, ' : ');
     var descEl = document.createElement('span');
     descEl.className = 'description';
     descEl.innerHTML = getBestDescription(f);
@@ -437,13 +474,13 @@ window.addEventListener('DOMContentLoaded', function() {
 
 
   // Render the box with a simple code representing the method
-  var renderFunctionDetail = function(f, isEvent, key) {
+  var renderFunctionDetail = function(f, type, key) {
     
     var keys = key.split(KEY_SEP);
 
     var detail=document.createElement('pre');
     detail.className = 'detail';
-    detail.innerHTML = searchModule.printMethodInfo(keys[0], keys[keys.length-1], isEvent);
+    detail.innerHTML = searchModule.printMethodInfo(keys[0], keys[keys.length-1], type);
 
     return detail;
   }
@@ -506,7 +543,7 @@ window.addEventListener('DOMContentLoaded', function() {
         var fullKey=parentKeys.concat(['functions', i]).join(KEY_SEP);
         var name = checkFilter(container, f, searchRe);
         if (name) {
-          container.appendChild( renderFunctionHeader(f, name, false, fullKey) );
+          container.appendChild( renderFunctionHeader(f, name, 'function', fullKey) );
         }
       }
       if (results['events']) for (var i=0; i<results['events'].length; i++) {
@@ -514,14 +551,22 @@ window.addEventListener('DOMContentLoaded', function() {
         var fullKey=parentKeys.concat(['events', i]).join(KEY_SEP);
         var name = checkFilter(container, f, searchRe);
         if (name) {
-          container.appendChild( renderFunctionHeader(f, name, true, fullKey) );
+          container.appendChild( renderFunctionHeader(f, name, 'event', fullKey) );
+        }
+      }
+      if (results['properties']) for (var i=0; i<results['properties'].length; i++) {
+        var f = results['properties'][i];
+        var fullKey=parentKeys.concat(['properties', i]).join(KEY_SEP);
+        var name = checkFilter(container, f, searchRe);
+        if (name) {
+          container.appendChild( renderFunctionHeader(f, name, 'property', fullKey) );
         }
       }
 
-    } else if (parentType === 'function'  || parentType === 'event') {
+    } else if (parentType === 'function'  || parentType === 'event' || parentType === 'property') {
       if (!container.getAttribute('data-state')) {
         var fullKey=container.getAttribute('data-name');
-        container.appendChild( renderFunctionDetail(results, parentType === 'event', fullKey) );
+        container.appendChild( renderFunctionDetail(results, parentType, fullKey) );
         container.setAttribute('data-state', 'open');
       }
     }
@@ -633,7 +678,7 @@ window.addEventListener('DOMContentLoaded', function() {
     var state=element.getAttribute('data-state');
     if (state==='open') {
 
-      if (parentType!=='function' && parentType!=='event' && parentType!=='namespace') {
+      if (parentType!=='function' && parentType!=='event' && parentType!=='property' && parentType!=='namespace') {
         // do nothing
         return;
       }
@@ -641,7 +686,7 @@ window.addEventListener('DOMContentLoaded', function() {
       // close
       for (var i=element.children.length-1; i>=0; i--) {
         var child = element.children.item(i);
-        if ((parentType==='function' || parentType==='event') && child.tagName==='PRE') {
+        if ((parentType==='function' || parentType==='event' || parentType==='property') && child.tagName==='PRE') {
           element.removeChild(child);
         } else if (parentType==='namespace' && child.tagName==='DIV') {
           element.removeChild(child);

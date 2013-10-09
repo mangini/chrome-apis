@@ -45,6 +45,9 @@ def GenerateAPI(inst, apiType):
     _Add_Api(api, templates, all_apis)
   for api in api_names['chrome']:
     _Add_Api(api, templates, all_apis)
+  for api in api_names['private']:
+    if api['name'] == 'webview':
+      _Add_Api(api, templates, all_apis)
   
   import subprocess, datetime
   git_meta = subprocess.Popen(

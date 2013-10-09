@@ -86,12 +86,16 @@ button:hover {
   border-radius: 5px;
 }
 
+#results > div[data-type="namespace"] > div[data-type="event"]:hover {
+  border-left: 3px solid red;
+}
+
 #results > div[data-type="namespace"] > div:hover {
-  border-left: 2px solid blue;
+  border-left: 3px solid blue;
 }
 
 #results > div[data-type="namespace"] > div {
-  border-left: 2px solid transparent;
+  border-left: 3px solid transparent;
   padding: 0.1em 0 0.2em 4em;
   text-indent: -2em;
   font-family: Courier New;
