@@ -13,11 +13,11 @@ import re
 
 DOCS_PATH = 'docs'
 
-def _Add_Api(api, templates, all_apis):
+def _Add_Api(api_prefix, api, templates, all_apis):
   api_name = re.sub(r'(.*)(devtools)\.([^.]+)', r'\2/\1\3', api['name'])
   #sys.stderr.write("API = %s    API_NAME = %s\n" % (api['name'], api_name.replace('.', '_')))
   api_data = templates._api_data_source.get(api_name.replace('.', '_'))
-  api_name = 'chrome.'+api['name']
+  api_name = api_prefix+api['name']
   all_apis[api_name] = {}
   _Add_Api_obj(all_apis[api_name], api_data, 'functions')
   sys.stderr.write("  adding %s: %d functions, %d events, %d properties and %d types\n" % (api_name,
@@ -42,12 +42,12 @@ def GenerateAPI(inst, apiType):
   api_names = templates._api_list_data_source.get(apiType)
   all_apis = {}
   for api in api_names['experimental']:
-    _Add_Api(api, templates, all_apis)
+    _Add_Api('chrome.', api, templates, all_apis)
   for api in api_names['chrome']:
-    _Add_Api(api, templates, all_apis)
+    _Add_Api('chrome.', api, templates, all_apis)
   for api in api_names['private']:
-    if api['name'] == 'webview':
-      _Add_Api(api, templates, all_apis)
+    if api['name'] == 'webviewTag':
+      _Add_Api('', api, templates, all_apis)
   
   import subprocess, datetime
   git_meta = subprocess.Popen(

@@ -29,7 +29,8 @@ const EVENT_NAMESPACE='chrome.events';
     }.bind(this);
 
     this.apiReader.initialize(function() {
-      this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', 
+      //this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', 
+      this.apiReader.read('apps_latest.json', 
         reloadRemote?null:onAppsRead, onAppsRead, reloadRemote);
       this.apiReader.read('http://chrome-api.storage.googleapis.com/extensions_latest.json', 
         reloadRemote?null:onExtensionsRead, onExtensionsRead, reloadRemote);
@@ -89,6 +90,20 @@ const EVENT_NAMESPACE='chrome.events';
       
   }
 
+  SearchAPI.prototype.getTypeByName = function(namespace, name) {
+
+    var searchObj = this.isApps?this.appsApi:this.extensionsApi;
+
+    var types = this.getSubtree([namespace, 'types']);
+    for (var i=0; types && i<types.length; i++) {
+      if (types[i]['name'] === name) {
+        return types[i];
+      }
+    }
+    return null;
+  }
+  
+
   SearchAPI.prototype.getSubtree = function(keys) {
 
     var searchObj=this.isApps?this.appsApi:this.extensionsApi;
@@ -147,18 +162,17 @@ const EVENT_NAMESPACE='chrome.events';
     out += this.printMethodParamsDetails(namespaceTree, subtree);
     out += nl;
 
+    var typeSubtree=null;
+
     if (type==='event') {
-      var eventSubtree = this.getSubtree([EVENT_NAMESPACE, 'types']);
-      var eventTypeSubtree = [];
-      for (var i=0; i<eventSubtree.length; i++) {
-        if (eventSubtree[i].name=='Event') {
-          eventTypeSubtree = eventSubtree[i];
-          break;
-        }
-      }
-      for (var i=0; i<eventTypeSubtree['functions'].length; i++) {
-        var functionObject = eventTypeSubtree['functions'][i];
-        out += this.printSimpleMethodSignature(namespace, subtree['name'], functionObject, type);
+      typeSubtree = this.getTypeByName(EVENT_NAMESPACE, 'Event');
+    } else if (type==='property' && subtree['link']) {
+      typeSubtree = this.getTypeByName(namespace, subtree['link']['name']);
+    }
+    if (typeSubtree) {
+      for (var i=0; i<typeSubtree['functions'].length; i++) {
+        var functionObject = typeSubtree['functions'][i];
+        out += this.printSimpleMethodSignature(namespace, subtree['name'], functionObject, 'function');
       }
     } else {
       out += this.printSimpleMethodSignature(namespace, null, subtree, type);
@@ -271,9 +285,10 @@ const EVENT_NAMESPACE='chrome.events';
 
   SearchAPI.prototype.fixDescriptionLinks = function(description, eatDoubleLines) {
     if (description) {
-      description = description.replace(fixLinksRe, 
-        "$1 target=\"blank\" $2http://developer.chrome.com/trunk/"+
-        (this.isApps?"apps":"extensions")+"/");
+      description = description
+        .replace(fixLinksRe, 
+          "$1 target=\"blank\" $2http://developer.chrome.com/"+
+          (this.isApps?"apps":"extensions")+"/");
     }
     return description;
   }
@@ -334,15 +349,24 @@ const EVENT_NAMESPACE='chrome.events';
 
     } else {
     // simple param
-      out += this.printSimpleParam(name, subtree.simple_type+typeSuffix, description);
+      var paramType = null;
+      if (subtree['simple_type']) {
+        paramType=subtree.simple_type+typeSuffix;
+      }
+      out += this.printSimpleParam(name, paramType, description, subtree['value']);
     }
 
     return out;
   }
 
-  SearchAPI.prototype.printSimpleParam = function(paramName, paramType, description) {
-    var out='<span class="param">' + paramName + '</span>, ';
-    out += '<span class="paramType">' + paramType + '</span>';
+  SearchAPI.prototype.printSimpleParam = function(paramName, paramType, description, constantValue) {
+    var out='<span class="param">' + paramName + '</span>';
+    if (paramType) {
+      out+=', <span class="paramType">' + paramType + '</span>';
+    }
+    if (constantValue) {
+      out+='=<span class="paramValue">' + constantValue + '</span>';
+    }
     out += '<span class="desc">' + this.cleanDescription(description, true) + '</span>';
     return out;
   }

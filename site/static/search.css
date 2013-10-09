@@ -86,6 +86,10 @@ button:hover {
   border-radius: 5px;
 }
 
+#results > div[data-type="namespace"] > div[data-type="property"]:hover {
+  border-left: 3px solid green;
+}
+
 #results > div[data-type="namespace"] > div[data-type="event"]:hover {
   border-left: 3px solid red;
 }
@@ -150,11 +154,14 @@ pre .fname {
 pre .desc {
   color: rgb(156, 156, 156);
 }
-pre .namespace, pre .returns {
+pre .namespace, pre .returns, pre .tname {
   color: rgb(132, 216, 255);
 }
 
 pre .paramType {
+  color: rgb(255, 47, 122);
+}
+pre .paramValue {
   color: rgb(255, 47, 122);
 }
 
