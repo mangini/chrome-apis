@@ -155,26 +155,40 @@ const EVENT_NAMESPACE='chrome.events';
     if (!subtree) {
       return 'Invalid method or namespace: '+[namespace, branch, methodIndex];
     }
-    
-    var out = '';
 
-    // Print the detailed comment with parameter descriptions:
-    out += this.printMethodParamsDetails(namespaceTree, subtree);
-    out += nl;
-
-    var typeSubtree=null;
-
+    var typeSubtree=null, addListenerFunction=null;
     if (type==='event') {
+      addListenerFunction=subtree['addListenerFunction'];
       typeSubtree = this.getTypeByName(EVENT_NAMESPACE, 'Event');
     } else if (type==='property' && subtree['link']) {
       typeSubtree = this.getTypeByName(namespace, subtree['link']['name']);
     }
+    
+    var out = '';
+
+    // Print the detailed comment with parameter descriptions:
+
     if (typeSubtree) {
       for (var i=0; i<typeSubtree['functions'].length; i++) {
         var functionObject = typeSubtree['functions'][i];
+
+        // do not print functions of Event type except the ones related to Listeners
+        // I'm not sure if this is correct for extensions, but at least for apps, the rules are usually not used and they polute the view
+        // TODO: double check this
+        if (type==='event' && ! /Listener/.test(functionObject['name'])) {
+          continue;
+        }
+
+        // for events, only print the detailed header for addListener
+        if (type!=='event' || functionObject['name']==='addListener') {
+          out += this.printMethodParamsDetails(namespaceTree, addListenerFunction || functionObject);
+        }
         out += this.printSimpleMethodSignature(namespace, subtree['name'], functionObject, 'function');
+        out += nl;
       }
     } else {
+      out += this.printMethodParamsDetails(namespaceTree, subtree);
+      out += nl;
       out += this.printSimpleMethodSignature(namespace, null, subtree, type);
     }
 
@@ -255,7 +269,7 @@ const EVENT_NAMESPACE='chrome.events';
     if (out && out!='') {
       out = out.replace(/\n+\s*\n/g, '\n'); 
 
-      out = '/**'+nl+nl+out+nl+'**/'+nl;
+      out = '/**'+nl+out+'**/'+nl;
     }
     return out;
   }
