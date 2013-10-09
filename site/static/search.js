@@ -29,8 +29,8 @@ const EVENT_NAMESPACE='chrome.events';
     }.bind(this);
 
     this.apiReader.initialize(function() {
-      //this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', 
-      this.apiReader.read('apps_latest.json', 
+      this.apiReader.read('http://chrome-api.storage.googleapis.com/apps_latest.json', 
+      //this.apiReader.read('apps_latest.json', 
         reloadRemote?null:onAppsRead, onAppsRead, reloadRemote);
       this.apiReader.read('http://chrome-api.storage.googleapis.com/extensions_latest.json', 
         reloadRemote?null:onExtensionsRead, onExtensionsRead, reloadRemote);
